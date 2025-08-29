@@ -235,6 +235,60 @@ router.delete(
 );
 
 /**
+ * GET /:namespace/_keys
+ * 获取指定命名空间下的键名列表（分页，不包括内容）
+ */
+router.get(
+  "/:namespace/_keys",
+  checkRestrictedUUID,
+  readAuthMiddleware,
+  errors.catchAsync(async (req, res, next) => {
+    const { namespace } = req.params;
+    const { sortBy, sortDir, limit, skip } = req.query;
+
+    // 构建选项
+    const options = {
+      sortBy: sortBy || "key",
+      sortDir: sortDir || "asc",
+      limit: limit ? parseInt(limit) : 100,
+      skip: skip ? parseInt(skip) : 0,
+    };
+
+    const keys = await kvStore.listKeysOnly(namespace, options);
+
+    // 获取总记录数
+    const totalRows = await kvStore.count(namespace);
+
+    // 构建响应对象
+    const response = {
+      keys: keys,
+      total_rows: totalRows,
+      current_page: {
+        limit: options.limit,
+        skip: options.skip,
+        count: keys.length,
+      },
+    };
+
+    // 如果还有更多数据，添加load_more字段
+    const nextSkip = options.skip + options.limit;
+    if (nextSkip < totalRows) {
+      const baseUrl = `${req.baseUrl}/${namespace}/_keys`;
+      const queryParams = new URLSearchParams({
+        sortBy: options.sortBy,
+        sortDir: options.sortDir,
+        limit: options.limit,
+        skip: nextSkip,
+      }).toString();
+
+      response.load_more = `${baseUrl}?${queryParams}`;
+    }
+
+    return res.json(response);
+  })
+);
+
+/**
  * GET /:namespace
  * 获取指定命名空间下的所有键名及元数据列表
  */

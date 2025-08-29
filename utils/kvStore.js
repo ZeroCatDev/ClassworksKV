@@ -161,6 +161,36 @@ class KVStore {
   }
 
   /**
+   * 获取指定命名空间下的键名列表（不包括内容）
+   * @param {string} namespace - 命名空间
+   * @param {object} options - 查询选项
+   * @returns {Array} 键名列表
+   */
+  async listKeysOnly(namespace, options = {}) {
+    const { sortBy = "key", sortDir = "asc", limit = 100, skip = 0 } = options;
+
+    // 构建排序条件
+    const orderBy = {};
+    orderBy[sortBy] = sortDir.toLowerCase();
+
+    // 查询以命名空间开头的所有键，只选择键名
+    const items = await prisma.kVStore.findMany({
+      where: {
+        namespace: namespace,
+      },
+      select: {
+        key: true,
+      },
+      orderBy,
+      take: limit,
+      skip: skip,
+    });
+
+    // 只返回键名数组
+    return items.map((item) => item.key);
+  }
+
+  /**
    * 统计指定命名空间下的键值对数量
    * @param {string} namespace - 命名空间
    * @returns {number} 键值对数量
