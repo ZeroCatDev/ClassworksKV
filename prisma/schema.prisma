@@ -3,33 +3,66 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:../data/db.db"
-}
-
-enum AccessType {
-  PUBLIC // No password required for read/write
-  PROTECTED // No password for read, password for write
-  PRIVATE // Password required for read/write
+  provider = "mysql"
+  url      = env("DATABASE_URL")
 }
 
 model KVStore {
-  namespace String
+  deviceId  Int      // 设备ID，作为namespace的一部分
   key       String
   value     Json
   creatorIp String?  @default("")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@id([namespace, key])
+  // 关联关系
+  device    Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@id([deviceId, key])
 }
 
 model Device {
-  uuid         String     @id
-  password     String?
-  passwordHint String?
+  id           Int        @id @default(autoincrement())
+  uuid         String     @unique  // 设备的唯一标识符
   name         String?
-  accessType   AccessType @default(PUBLIC)
+  accountId    String?    // 关联的社区账户ID，暂不添加相关代码
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
+  password     String?
+  passwordHint String?
+
+  // 关联的应用安装记录
+  appInstalls  AppInstall[]
+  kvStore      KVStore[]  // 设备相关的KV存储
+}
+
+model App {
+  id              Int      @id @default(autoincrement())  // 自增ID
+  name            String   // 应用名称
+  description     String?  // 应用简介
+  developerName   String   // 开发者名称
+  developerLink   String?  // 开发者链接
+  homepageLink    String?  // 应用首页链接
+  iconHash        String?  // 图标hash
+  repositoryUrl   String?  // Git仓库地址 (支持 GitHub, GitLab, Bitbucket, Gitea, Forgejo)
+  metadata        Json?    // 元数据
+  createdAt       DateTime @default(now())  // 自动生成创建时间
+  updatedAt       DateTime @updatedAt  // 自动更新时间
+
+  // 关联的应用安装记录
+  installs        AppInstall[]
+}
+
+model AppInstall {
+  id               String   @id @default(cuid())
+  deviceId         Int      // 关联的设备ID
+  appId            Int      // 关联的应用ID
+  token            String   @unique // 应用安装的唯一访问令牌，拥有完整KV读写权限
+  note             String?  // 安装备注
+  installedAt      DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // 关联关系
+  device      Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  app         App      @relation(fields: [appId], references: [id], onDelete: Cascade)
 }

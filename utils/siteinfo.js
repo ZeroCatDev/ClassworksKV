@@ -1,7 +1,14 @@
+import { PrismaClient } from "@prisma/client";
 import kvStore from "./kvStore.js";
+
+const prisma = new PrismaClient();
+
+// 系统保留UUID用于存储站点信息
+const SYSTEM_DEVICE_UUID = "00000000-0000-4000-8000-000000000000";
 
 // 存储 readme 值的内存变量
 let readmeValue = null;
+let systemDeviceId = null;
 
 // 封装默认 readme 对象
 const defaultReadme = {
@@ -10,15 +17,39 @@ const defaultReadme = {
 };
 
 /**
+ * 获取或创建系统设备
+ * @returns {Promise<number>} 系统设备ID
+ */
+async function getSystemDeviceId() {
+  if (systemDeviceId) return systemDeviceId;
+
+  let device = await prisma.device.findUnique({
+    where: { uuid: SYSTEM_DEVICE_UUID },
+    select: { id: true },
+  });
+
+  if (!device) {
+    device = await prisma.device.create({
+      data: {
+        uuid: SYSTEM_DEVICE_UUID,
+        name: "系统设备",
+      },
+      select: { id: true },
+    });
+  }
+
+  systemDeviceId = device.id;
+  return systemDeviceId;
+}
+
+/**
  * 初始化 readme 值
  * 在应用启动时调用此函数
  */
 export const initReadme = async () => {
   try {
-    const storedValue = await kvStore.get(
-      "00000000-0000-4000-8000-000000000000",
-      "info"
-    );
+    const deviceId = await getSystemDeviceId();
+    const storedValue = await kvStore.get(deviceId, "info");
 
     // 合并默认值与存储值，确保结构完整
     readmeValue = {
@@ -53,11 +84,8 @@ export const getReadmeValue = () => {
  */
 export const updateReadmeValue = async (newValue) => {
   try {
-    await kvStore.upsert(
-      "00000000-0000-4000-8000-000000000000",
-      "info",
-      newValue
-    );
+    const deviceId = await getSystemDeviceId();
+    await kvStore.upsert(deviceId, "info", newValue);
     readmeValue = {
       ...defaultReadme,
       ...newValue,

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//d/Classworks/ClassworksServer/prisma/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

@@ -8,14 +8,16 @@ import logger from "morgan";
 import bodyParser from "body-parser";
 import errorHandler from "./middleware/errorHandler.js";
 import errors from "./utils/errors.js";
-import { initReadme, getReadmeValue } from "./utils/siteinfo.js";
 import {
   globalLimiter,
   apiLimiter,
   methodBasedRateLimiter,
+  tokenBasedRateLimiter,
 } from "./middleware/rateLimiter.js";
 
-import kvRouter from "./routes/kv.js";
+import kvRouter from "./routes/kv-token.js";
+import appsRouter from "./routes/apps.js";
+import deviceAuthRouter from "./routes/device-auth.js";
 
 var app = express();
 
@@ -32,9 +34,6 @@ app.disable("x-powered-by");
 // 获取当前文件的目录路径
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-
-// 初始化 readme
-initReadme();
 
 // 应用全局限速
 app.use(globalLimiter);
@@ -73,7 +72,7 @@ app.use((req, res, next) => {
   next();
 });
 app.get("/", (req, res) => {
-  res.render("index.ejs", { readmeValue: getReadmeValue() });
+  res.render("index.ejs");
 });
 app.get("/check", apiLimiter, (req, res) => {
   res.json({
@@ -83,8 +82,14 @@ app.get("/check", apiLimiter, (req, res) => {
   });
 });
 
-// Mount the KV store router with method-based rate limiting
-app.use("/", methodBasedRateLimiter, kvRouter);
+// Mount the Apps router with API rate limiting
+app.use("/apps", apiLimiter, appsRouter);
+
+// Mount the KV store router with token-based rate limiting (更宽松的限速)
+app.use("/kv", tokenBasedRateLimiter, kvRouter);
+
+// Mount the Device Authorization router with API rate limiting
+app.use("/auth", apiLimiter, deviceAuthRouter);
 
 // 兜底404路由 - 处理所有未匹配的路由
 app.use((req, res, next) => {

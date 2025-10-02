@@ -27,56 +27,6 @@ function encodeUTF8(str) {
 }
 
 /**
- * 验证密码是否匹配（带 base64 解码）
- */
-export async function DecodeAndVerifyPassword(plainPassword, hashedPassword) {
-  if (!plainPassword || !hashedPassword) return false;
-  const decodedPassword = decodeBase64(plainPassword);
-  console.debug(decodedPassword);
-  if (!decodedPassword) return false;
-  const encodedPassword = encodeUTF8(decodedPassword);
-  console.debug(encodedPassword);
-  if (!encodedPassword) return false;
-  return await bcrypt.compare(encodedPassword, hashedPassword);
-}
-
-/**
- * 验证密码是否匹配（不解码 base64，但处理 UTF-8）
- */
-export async function verifyPassword(plainPassword, hashedPassword) {
-  if (!plainPassword || !hashedPassword) return false;
-  const encodedPassword = encodeUTF8(plainPassword);
-  console.debug(encodedPassword);
-  if (!encodedPassword) return false;
-  return await bcrypt.compare(encodedPassword, hashedPassword);
-}
-
-/**
- * 对密码进行哈希处理（带 base64 解码）
- */
-export async function DecodeAndhashPassword(plainPassword) {
-  if (!plainPassword) return null;
-  const decodedPassword = decodeBase64(plainPassword);
-  console.debug(decodedPassword);
-  if (!decodedPassword) return null;
-  const encodedPassword = encodeUTF8(decodedPassword);
-  if (!encodedPassword) return null;
-  console.debug(encodedPassword);
-  return await bcrypt.hash(encodedPassword, SALT_ROUNDS);
-}
-
-/**
- * 对密码进行哈希处理（不解码 base64，但处理 UTF-8）
- */
-export async function hashPassword(plainPassword) {
-  if (!plainPassword) return null;
-  const encodedPassword = encodeUTF8(plainPassword);
-  if (!encodedPassword) return null;
-  console.debug(encodedPassword);
-  return await bcrypt.hash(encodedPassword, SALT_ROUNDS);
-}
-
-/**
  * 验证站点密钥
  */
 export function verifySiteKey(providedKey, actualKey) {
@@ -88,4 +38,30 @@ export function verifySiteKey(providedKey, actualKey) {
   if (!encodedKey) return false;
   console.debug(encodedKey);
   return encodedKey === actualKey;
+}
+
+/**
+ * 哈希密码
+ * @param {string} password - 明文密码
+ * @returns {Promise<string>} 哈希后的密码
+ */
+export async function hashPassword(password) {
+  if (!password) return null;
+  return await bcrypt.hash(password, SALT_ROUNDS);
+}
+
+/**
+ * 验证设备密码
+ * @param {string} providedPassword - 用户提供的明文密码
+ * @param {string} hashedPassword - 存储的哈希密码
+ * @returns {Promise<boolean>} 密码是否匹配
+ */
+export async function verifyDevicePassword(providedPassword, hashedPassword) {
+  if (!providedPassword || !hashedPassword) return false;
+  try {
+    return await bcrypt.compare(providedPassword, hashedPassword);
+  } catch (error) {
+    console.error('密码验证错误:', error);
+    return false;
+  }
 }
