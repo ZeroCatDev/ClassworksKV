@@ -45,7 +45,7 @@ export const globalLimiter = rateLimit({
 // API限速器
 export const apiLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1分钟
-  limit: 50, // 每个IP在windowMs时间内最多允许50个请求
+  limit: 100, // 每个IP在windowMs时间内最多允许100个请求
   standardHeaders: "draft-7",
   legacyHeaders: false,
   message: "API请求过于频繁，请稍后再试",

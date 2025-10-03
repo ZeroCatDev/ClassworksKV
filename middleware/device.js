@@ -92,6 +92,8 @@ export const deviceInfoMiddleware = errors.catchAsync(async (req, res, next) => 
  * 从req.body.password获取密码
  * 如果设备有密码但未提供或密码错误，则返回401错误
  *
+ * 特殊规则：如果设备绑定了账户，且req.account存在且匹配，则跳过密码验证
+ *
  * 使用方式：
  * router.post('/path', deviceMiddleware, passwordMiddleware, handler)
  */
@@ -101,6 +103,11 @@ export const passwordMiddleware = errors.catchAsync(async (req, res, next) => {
 
   if (!device) {
     return next(errors.createError(500, "设备信息未加载，请先使用deviceMiddleware"));
+  }
+
+  // 如果设备绑定了账户，且请求中有账户信息且匹配，则跳过密码验证
+  if (device.accountId && req.account && req.account.id === device.accountId) {
+    return next();
   }
 
   // 如果设备有密码，验证密码

@@ -17,7 +17,9 @@ import {
 
 import kvRouter from "./routes/kv-token.js";
 import appsRouter from "./routes/apps.js";
+import deviceRouter from "./routes/device.js";
 import deviceAuthRouter from "./routes/device-auth.js";
+import accountsRouter from "./routes/accounts.js";
 
 var app = express();
 
@@ -85,11 +87,17 @@ app.get("/check", apiLimiter, (req, res) => {
 // Mount the Apps router with API rate limiting
 app.use("/apps", apiLimiter, appsRouter);
 
+// Mount the Device router with API rate limiting
+app.use("/devices", apiLimiter, deviceRouter);
+
 // Mount the KV store router with token-based rate limiting (更宽松的限速)
 app.use("/kv", tokenBasedRateLimiter, kvRouter);
 
 // Mount the Device Authorization router with API rate limiting
 app.use("/auth", apiLimiter, deviceAuthRouter);
+
+// Mount the Accounts router with API rate limiting
+app.use("/accounts", apiLimiter, accountsRouter);
 
 // 兜底404路由 - 处理所有未匹配的路由
 app.use((req, res, next) => {

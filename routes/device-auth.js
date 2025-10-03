@@ -1,14 +1,12 @@
 import { Router } from "express";
 import deviceCodeStore from "../utils/deviceCodeStore.js";
-import { checkSiteKey } from "../middleware/auth.js";
 import errors from "../utils/errors.js";
 import { PrismaClient } from "@prisma/client";
 
 const router = Router();
 const prisma = new PrismaClient();
 
-// 应用站点密钥验证
-router.use(checkSiteKey);
+
 
 /**
  * POST /device/code

@@ -3,16 +3,21 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { apiClient } from '@/lib/api'
 import { deviceStore } from '@/lib/deviceStore'
+import { useAccountStore } from '@/stores/account'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { CheckCircle2, XCircle, Loader2, Shield, Key, AlertCircle } from 'lucide-vue-next'
+import { CheckCircle2, XCircle, Loader2, Shield, Key, AlertCircle, User, Plus, Check } from 'lucide-vue-next'
 import AppCard from '@/components/AppCard.vue'
+import PasswordInput from '@/components/PasswordInput.vue'
+import LoginDialog from '@/components/LoginDialog.vue'
+import { toast } from 'vue-sonner'
 
 const route = useRoute()
 const router = useRouter()
+const accountStore = useAccountStore()
 
 // URL 参数
 const appId = ref(route.query.app_id || '')
@@ -24,7 +29,14 @@ const callbackUrl = ref(route.query.callback_url || '')
 const step = ref('input') // 'input' | 'loading' | 'success' | 'error'
 const errorMessage = ref('')
 const deviceUuid = ref('')
-const hasPassword = ref(false)
+const deviceInfo = ref(null)
+const deviceAccount = ref(null)
+const showLoginDialog = ref(false)
+const showDeviceList = ref(false)
+const customDeviceUuid = ref('')
+
+// 计算属性获取是否有密码
+const hasPassword = computed(() => deviceInfo.value?.hasPassword || false)
 
 // 表单数据
 const inputDeviceCode = ref('')
@@ -50,6 +62,73 @@ const loadAppInfo = async () => {
   }
 }
 
+// 加载设备账户信息
+const loadDeviceAccount = async () => {
+  if (!deviceUuid.value) return
+
+  try {
+    const response = await apiClient.getDeviceAccount(deviceUuid.value)
+    deviceAccount.value = response.data
+  } catch (error) {
+    console.log('Failed to load device account:', error)
+    deviceAccount.value = null
+  }
+}
+
+// 选择设备UUID
+const selectDevice = async (uuid) => {
+  deviceUuid.value = uuid
+  deviceStore.setUuid(uuid)
+  showDeviceList.value = false
+  customDeviceUuid.value = ''
+
+  // 重新加载设备信息
+  await loadDeviceInfo()
+  await loadDeviceAccount()
+}
+
+// 使用自定义UUID
+const useCustomUuid = () => {
+  if (!customDeviceUuid.value) return
+
+  selectDevice(customDeviceUuid.value)
+}
+
+// 一键绑定当前设备
+const bindCurrentDevice = async () => {
+  if (!accountStore.isAuthenticated || !deviceUuid.value) return
+
+  try {
+    await accountStore.bindDevice(deviceUuid.value)
+    await loadDeviceAccount()
+    toast.success('绑定成功', {
+      description: '设备已绑定到您的账户'
+    })
+  } catch (error) {
+    toast.error('绑定失败', {
+      description: error.message || '无法绑定设备'
+    })
+  }
+}
+
+// 登录成功回调
+const handleLoginSuccess = async (token) => {
+  showLoginDialog.value = false
+  await accountStore.login(token)
+  await loadDeviceAccount()
+
+  // 如果当前设备未绑定，提示是否绑定
+  if (!deviceAccount.value) {
+    toast('登录成功', {
+      description: '您可以将当前设备绑定到账户',
+      action: {
+        label: '立即绑定',
+        onClick: bindCurrentDevice,
+      },
+    })
+  }
+}
+
 // 授权应用并绑定到设备代码
 const authorizeWithDeviceCode = async () => {
   if (!currentDeviceCode.value || !deviceUuid.value) return
@@ -60,7 +139,6 @@ const authorizeWithDeviceCode = async () => {
   try {
     // 1. 授权应用并获取 token
     const authData = {
-      deviceUuid: deviceUuid.value,
       note: authNote.value || '设备代码授权',
     }
 
@@ -68,7 +146,7 @@ const authorizeWithDeviceCode = async () => {
       authData.password = authPassword.value
     }
 
-    const authResult = await apiClient.authorizeApp(appId.value, authData)
+    const authResult = await apiClient.authorizeApp(appId.value, deviceUuid.value, authData)
     const token = authResult.token
 
     // 2. 绑定 token 到设备代码
@@ -90,7 +168,6 @@ const authorizeWithCallback = async () => {
 
   try {
     const authData = {
-      deviceUuid: deviceUuid.value,
       note: authNote.value || '回调授权',
     }
 
@@ -98,7 +175,7 @@ const authorizeWithCallback = async () => {
       authData.password = authPassword.value
     }
 
-    const authResult = await apiClient.authorizeApp(appId.value, authData)
+    const authResult = await apiClient.authorizeApp(appId.value, deviceUuid.value, authData)
     const token = authResult.token
 
     // 如果有回调 URL，跳转并携带 token
@@ -136,10 +213,33 @@ const retry = () => {
   authPassword.value = ''
 }
 
-onMounted(() => {
+// 加载设备信息
+const loadDeviceInfo = async () => {
+  try {
+    const info = await apiClient.getDeviceInfo(deviceUuid.value)
+    deviceInfo.value = info
+  } catch (error) {
+    console.log('Failed to load device info:', error)
+    deviceInfo.value = null
+  }
+}
+
+onMounted(async () => {
   deviceUuid.value = deviceStore.getOrGenerate()
-  hasPassword.value = deviceStore.hasPassword()
-  loadAppInfo()
+
+  // 加载设备信息
+  await loadDeviceInfo()
+
+  // 加载设备账户信息
+  await loadDeviceAccount()
+
+  // 加载应用信息
+  await loadAppInfo()
+
+  // 如果已登录，加载设备列表
+  if (accountStore.isAuthenticated) {
+    await accountStore.loadDevices()
+  }
 
   // 如果是 devicecode 模式且已有设备代码，自动填充
   if (isDeviceCodeMode.value && deviceCode.value) {
@@ -179,8 +279,15 @@ onMounted(() => {
 
         <!-- 设备信息 -->
         <div class="space-y-3">
-          <Label class="text-sm text-muted-foreground">设备 UUID</Label>
-          <div class="flex items-center gap-2">
+          <div class="flex items-center justify-between">
+            <Label class="text-sm text-muted-foreground">设备 UUID</Label>
+
+          </div>
+
+
+
+          <!-- 当前设备UUID显示 -->
+          <div  class="flex items-center gap-2">
             <code class="text-xs font-mono bg-muted px-3 py-2 rounded flex-1 truncate">
               {{ deviceUuid }}
             </code>
@@ -188,6 +295,23 @@ onMounted(() => {
               <Shield class="h-3 w-3 mr-1" />
               已保护
             </Badge>
+          </div>
+
+          <!-- 设备绑定状态 -->
+          <div v-if="deviceAccount" class="text-xs text-muted-foreground flex items-center gap-2">
+            <User class="h-3 w-3" />
+            已绑定至: {{ deviceAccount.name }}
+          </div>
+          <div v-else-if="accountStore.isAuthenticated && !showDeviceList" class="flex items-center gap-2">
+            <Button
+              @click="bindCurrentDevice"
+              size="sm"
+              variant="outline"
+              class="text-xs"
+            >
+              <Plus class="h-3 w-3 mr-1" />
+              绑定到我的账户
+            </Button>
           </div>
         </div>
 
@@ -231,14 +355,17 @@ onMounted(() => {
             />
           </div>
 
-          <!-- 密码输入 -->
-          <div v-if="hasPassword" class="space-y-2">
-            <Label for="password">设备密码</Label>
-            <Input
-              id="password"
+          <!-- 密码输入（使用统一组件） -->
+          <div v-if="hasPassword">
+            <PasswordInput
               v-model="authPassword"
-              type="text"
+              label="设备密码"
               placeholder="输入设备密码以确认授权"
+              :device-uuid="deviceUuid"
+              :show-hint="true"
+              :show-strength="false"
+              required
+              :error="step === 'error' && errorMessage.includes('密码') ? '密码错误' : ''"
             />
           </div>
 
@@ -337,5 +464,8 @@ onMounted(() => {
         </div>
       </CardContent>
     </Card>
+
+    <!-- 登录弹框 -->
+    <LoginDialog v-model="showLoginDialog" :on-success="handleLoginSuccess" />
   </div>
 </template>

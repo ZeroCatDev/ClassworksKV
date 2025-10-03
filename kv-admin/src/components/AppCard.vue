@@ -61,7 +61,7 @@ const renderedReadme = computed(() => {
 // 获取应用信息
 const fetchApp = async () => {
   try {
-    app.value = await axios.get(`/apps/${props.appId}`);
+    app.value = await axios.get(`/apps/info/${props.appId}`);
 
     if (app.value.repositoryUrl) {
       await fetchReadme();

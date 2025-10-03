@@ -1,13 +1,11 @@
 import { Router } from "express";
 const router = Router();
 import kvStore from "../utils/kvStore.js";
-import { tokenAuth } from "../middleware/tokenAuth.js";
+import { kvTokenAuth } from "../middleware/kvTokenAuth.js";
 import errors from "../utils/errors.js";
-import { checkSiteKey } from "../middleware/auth.js";
 
-// 应用站点密钥验证和token认证
-router.use(checkSiteKey);
-router.use(tokenAuth);
+// 使用KV专用token认证
+router.use(kvTokenAuth);
 
 /**
  * GET /_keys

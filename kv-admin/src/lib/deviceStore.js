@@ -7,16 +7,64 @@ export function generateUUID() {
   })
 }
 
-// 设备 UUID 管理
+// 设备 UUID 管理 - 使用多种缓存策略确保UUID不丢失
 export const deviceStore = {
-  // 获取当前设备 UUID
+  // 存储键名
+  STORAGE_KEY: 'device_uuid',
+  BACKUP_KEY: 'device_uuid_backup',
+  SESSION_KEY: 'device_uuid_session',
+
+  // 获取当前设备 UUID（从多个存储位置尝试读取）
   getDeviceUuid() {
-    return localStorage.getItem('device_uuid')
+    // 1. 首先从 localStorage 获取
+    let uuid = localStorage.getItem(this.STORAGE_KEY)
+
+    // 2. 如果没有，尝试从备份位置获取
+    if (!uuid) {
+      uuid = localStorage.getItem(this.BACKUP_KEY)
+      if (uuid) {
+        // 恢复到主存储位置
+        this.setDeviceUuid(uuid)
+      }
+    }
+
+    // 3. 如果还没有，尝试从 sessionStorage 获取
+    if (!uuid) {
+      uuid = sessionStorage.getItem(this.SESSION_KEY)
+      if (uuid) {
+        // 恢复到主存储位置
+        this.setDeviceUuid(uuid)
+      }
+    }
+
+    // 4. 如果还没有，尝试从 cookie 获取（如果有的话）
+    if (!uuid) {
+      uuid = this.getFromCookie()
+      if (uuid) {
+        // 恢复到所有存储位置
+        this.setDeviceUuid(uuid)
+      }
+    }
+
+    return uuid
   },
 
-  // 设置设备 UUID
+  // 设置设备 UUID（同时存储到多个位置）
   setDeviceUuid(uuid) {
-    localStorage.setItem('device_uuid', uuid)
+    // 1. 存储到 localStorage 主位置
+    localStorage.setItem(this.STORAGE_KEY, uuid)
+
+    // 2. 存储到备份位置
+    localStorage.setItem(this.BACKUP_KEY, uuid)
+
+    // 3. 存储到 sessionStorage
+    sessionStorage.setItem(this.SESSION_KEY, uuid)
+
+    // 4. 存储到 cookie（设置较长的过期时间）
+    this.saveToCookie(uuid)
+
+    // 5. 尝试存储到 IndexedDB（异步）
+    this.saveToIndexedDB(uuid)
   },
 
   // 生成并保存新的设备 UUID
@@ -31,26 +79,113 @@ export const deviceStore = {
     let uuid = this.getDeviceUuid()
     if (!uuid) {
       uuid = this.generateAndSave()
+    } else {
+      // 确保UUID被保存到所有位置
+      this.setDeviceUuid(uuid)
     }
     return uuid
   },
 
-  // 清除设备 UUID
+  // 清除设备 UUID（从所有存储位置清除）
   clear() {
-    localStorage.removeItem('device_uuid')
-    localStorage.removeItem('device_password')
+    localStorage.removeItem(this.STORAGE_KEY)
+    localStorage.removeItem(this.BACKUP_KEY)
+    sessionStorage.removeItem(this.SESSION_KEY)
+    this.clearCookie()
+    this.clearIndexedDB()
   },
 
-  // 设备密码管理
-  hasPassword() {
-    return localStorage.getItem('device_password') === 'true'
+  // Cookie 操作
+  saveToCookie(uuid) {
+    try {
+      const expires = new Date()
+      expires.setFullYear(expires.getFullYear() + 10) // 10年过期
+      document.cookie = `device_uuid=${uuid}; expires=${expires.toUTCString()}; path=/; SameSite=Strict`
+    } catch (e) {
+      console.log('Failed to save UUID to cookie:', e)
+    }
   },
 
-  setHasPassword(hasPassword) {
-    if (hasPassword) {
-      localStorage.setItem('device_password', 'true')
-    } else {
-      localStorage.removeItem('device_password')
+  getFromCookie() {
+    try {
+      const match = document.cookie.match(/(?:^|; )device_uuid=([^;]*)/)
+      return match ? match[1] : null
+    } catch (e) {
+      console.log('Failed to get UUID from cookie:', e)
+      return null
+    }
+  },
+
+  clearCookie() {
+    try {
+      document.cookie = 'device_uuid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+    } catch (e) {
+      console.log('Failed to clear UUID cookie:', e)
+    }
+  },
+
+  // IndexedDB 操作（异步，作为额外的备份）
+  async saveToIndexedDB(uuid) {
+    try {
+      const db = await this.openDB()
+      const transaction = db.transaction(['device'], 'readwrite')
+      const store = transaction.objectStore('device')
+      await store.put({ id: 'uuid', value: uuid })
+    } catch (e) {
+      console.log('Failed to save UUID to IndexedDB:', e)
+    }
+  },
+
+  async getFromIndexedDB() {
+    try {
+      const db = await this.openDB()
+      const transaction = db.transaction(['device'], 'readonly')
+      const store = transaction.objectStore('device')
+      const result = await store.get('uuid')
+      return result?.value || null
+    } catch (e) {
+      console.log('Failed to get UUID from IndexedDB:', e)
+      return null
+    }
+  },
+
+  async clearIndexedDB() {
+    try {
+      const db = await this.openDB()
+      const transaction = db.transaction(['device'], 'readwrite')
+      const store = transaction.objectStore('device')
+      await store.delete('uuid')
+    } catch (e) {
+      console.log('Failed to clear UUID from IndexedDB:', e)
+    }
+  },
+
+  openDB() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open('ClassworksKV', 1)
+
+      request.onerror = () => reject(request.error)
+      request.onsuccess = () => resolve(request.result)
+
+      request.onupgradeneeded = (event) => {
+        const db = event.target.result
+        if (!db.objectStoreNames.contains('device')) {
+          db.createObjectStore('device', { keyPath: 'id' })
+        }
+      }
+    })
+  },
+
+  // 尝试从 IndexedDB 恢复 UUID（在初始化时调用）
+  async tryRestoreFromIndexedDB() {
+    const uuid = await this.getFromIndexedDB()
+    if (uuid && !this.getDeviceUuid()) {
+      this.setDeviceUuid(uuid)
     }
   }
+}
+
+// 在页面加载时尝试从 IndexedDB 恢复
+if (typeof window !== 'undefined') {
+  deviceStore.tryRestoreFromIndexedDB()
 }

@@ -21,17 +21,37 @@ model KVStore {
   @@id([deviceId, key])
 }
 
+model Account {
+  id               String   @id @default(cuid())
+  provider         String   // OAuth提供者 (例如: google, github, gitlab等)
+  providerId       String   // 提供者返回的用户唯一ID
+  email            String?  // 用户邮箱
+  name             String?  // 用户名称
+  avatarUrl        String?  // 用户头像URL
+  providerData     Json?    // OAuth提供者返回的完整信息
+  accessToken      String   @unique // 账户访问令牌
+  refreshToken     String?  // OAuth refresh token (如果提供者支持)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // 关联的设备
+  devices          Device[]
+
+  @@unique([provider, providerId]) // 确保同一提供者的用户ID唯一
+}
+
 model Device {
   id           Int        @id @default(autoincrement())
   uuid         String     @unique  // 设备的唯一标识符
   name         String?
-  accountId    String?    // 关联的社区账户ID，暂不添加相关代码
+  accountId    String?    // 关联的账户ID
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
   password     String?
   passwordHint String?
 
-  // 关联的应用安装记录
+  // 关联关系
+  account      Account?   @relation(fields: [accountId], references: [id], onDelete: SetNull)
   appInstalls  AppInstall[]
   kvStore      KVStore[]  // 设备相关的KV存储
 }
