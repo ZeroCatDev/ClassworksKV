@@ -42,6 +42,8 @@ const showChangePasswordDialog = ref(false)
 const showDeletePasswordDialog = ref(false)
 const showHintDialog = ref(false)
 const showResetDeviceDialog = ref(false)
+const showRegisterDialog = ref(false)
+const deviceRequired = ref(false)
 
 // Form data
 const currentPassword = ref('')
@@ -237,15 +239,30 @@ const handleDeviceReset = () => {
   }, 3000)
 }
 
+// 更新设备UUID回调
+const updateUuid = () => {
+  showRegisterDialog.value = false
+  deviceUuid.value = deviceStore.getDeviceUuid()
+  loadDeviceInfo()
+}
+
 onMounted(async () => {
-  deviceUuid.value = deviceStore.getOrGenerate()
+  // 检查是否存在设备UUID
+  const existingUuid = deviceStore.getDeviceUuid()
+  if (!existingUuid) {
+    deviceRequired.value = true
+    // 如果没有设备UUID，显示设备管理弹框
+    showRegisterDialog.value = true
+  } else {
+    deviceUuid.value = existingUuid
 
-  // 加载设备信息
-  await loadDeviceInfo()
+    // 加载设备信息
+    await loadDeviceInfo()
 
-  // 如果有密码但密码提示不存在，单独加载密码提示
-  if (hasPassword.value && !passwordHint.value) {
-    await loadPasswordHint()
+    // 如果有密码但密码提示不存在，单独加载密码提示
+    if (hasPassword.value && !passwordHint.value) {
+      await loadPasswordHint()
+    }
   }
 })
 </script>
@@ -586,6 +603,13 @@ onMounted(async () => {
       v-model="showResetDeviceDialog"
       @confirm="handleDeviceReset"
       @update:modelValue="val => showResetDeviceDialog = val"
+    />
+
+    <!-- 必需注册弹框 -->
+    <DeviceRegisterDialog
+      v-model="showRegisterDialog"
+      @confirm="updateUuid"
+      :required="deviceRequired"
     />
   </div>
 </template>

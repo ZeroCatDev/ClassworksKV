@@ -56,27 +56,10 @@ model Device {
   kvStore      KVStore[]  // 设备相关的KV存储
 }
 
-model App {
-  id              Int      @id @default(autoincrement())  // 自增ID
-  name            String   // 应用名称
-  description     String?  // 应用简介
-  developerName   String   // 开发者名称
-  developerLink   String?  // 开发者链接
-  homepageLink    String?  // 应用首页链接
-  iconHash        String?  // 图标hash
-  repositoryUrl   String?  // Git仓库地址 (支持 GitHub, GitLab, Bitbucket, Gitea, Forgejo)
-  metadata        Json?    // 元数据
-  createdAt       DateTime @default(now())  // 自动生成创建时间
-  updatedAt       DateTime @updatedAt  // 自动更新时间
-
-  // 关联的应用安装记录
-  installs        AppInstall[]
-}
-
 model AppInstall {
   id               String   @id @default(cuid())
   deviceId         Int      // 关联的设备ID
-  appId            Int      // 关联的应用ID
+  appId            String   // 应用ID (SHA256 hash)
   token            String   @unique // 应用安装的唯一访问令牌，拥有完整KV读写权限
   note             String?  // 安装备注
   installedAt      DateTime @default(now())
@@ -84,5 +67,4 @@ model AppInstall {
 
   // 关联关系
   device      Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
-  app         App      @relation(fields: [appId], references: [id], onDelete: Cascade)
 }

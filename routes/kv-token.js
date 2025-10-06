@@ -3,9 +3,57 @@ const router = Router();
 import kvStore from "../utils/kvStore.js";
 import { kvTokenAuth } from "../middleware/kvTokenAuth.js";
 import errors from "../utils/errors.js";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 // 使用KV专用token认证
 router.use(kvTokenAuth);
+
+/**
+ * GET /_info
+ * 获取当前token所属设备的信息，如果关联了账号也返回账号信息
+ */
+router.get(
+  "/_info",
+  errors.catchAsync(async (req, res) => {
+    const deviceId = res.locals.deviceId;
+
+    // 获取设备信息，包含关联的账号
+    const device = await prisma.device.findUnique({
+      where: { id: deviceId },
+      include: {
+        account: true,
+      },
+    });
+
+    if (!device) {
+      return next(errors.createError(404, "设备不存在"));
+    }
+
+    // 构建响应对象
+    const response = {
+      device: {
+        id: device.id,
+        uuid: device.uuid,
+        name: device.name,
+        createdAt: device.createdAt,
+        updatedAt: device.updatedAt,
+      },
+    };
+
+    // 如果关联了账号，添加账号信息
+    if (device.account) {
+      response.account = {
+        id: device.account.id,
+        name: device.account.name,
+        avatarUrl: device.account.avatarUrl,
+      };
+    }
+
+    return res.json(response);
+  })
+);
 
 /**
  * GET /_keys

@@ -13,6 +13,7 @@ import { CheckCircle2, XCircle, Loader2, Shield, Key, AlertCircle, User, Plus, C
 import AppCard from '@/components/AppCard.vue'
 import PasswordInput from '@/components/PasswordInput.vue'
 import LoginDialog from '@/components/LoginDialog.vue'
+import DeviceRegisterDialog from '@/components/DeviceRegisterDialog.vue'
 import { toast } from 'vue-sonner'
 
 const route = useRoute()
@@ -34,6 +35,8 @@ const deviceAccount = ref(null)
 const showLoginDialog = ref(false)
 const showDeviceList = ref(false)
 const customDeviceUuid = ref('')
+const showRegisterDialog = ref(false)
+const deviceRequired = ref(false)
 
 // 计算属性获取是否有密码
 const hasPassword = computed(() => deviceInfo.value?.hasPassword || false)
@@ -224,14 +227,30 @@ const loadDeviceInfo = async () => {
   }
 }
 
+// 更新设备UUID回调
+const updateUuid = () => {
+  showRegisterDialog.value = false
+  deviceUuid.value = deviceStore.getDeviceUuid()
+  loadDeviceInfo()
+  loadDeviceAccount()
+}
+
 onMounted(async () => {
-  deviceUuid.value = deviceStore.getOrGenerate()
+  // 检查是否存在设备UUID
+  const existingUuid = deviceStore.getDeviceUuid()
+  if (!existingUuid) {
+    deviceRequired.value = true
+    // 如果没有设备UUID，显示设备管理弹框
+    showRegisterDialog.value = true
+  } else {
+    deviceUuid.value = existingUuid
 
-  // 加载设备信息
-  await loadDeviceInfo()
+    // 加载设备信息
+    await loadDeviceInfo()
 
-  // 加载设备账户信息
-  await loadDeviceAccount()
+    // 加载设备账户信息
+    await loadDeviceAccount()
+  }
 
   // 加载应用信息
   await loadAppInfo()
@@ -261,20 +280,16 @@ onMounted(async () => {
         <div class="space-y-2 text-center">
           <CardTitle class="text-2xl">应用授权</CardTitle>
           <CardDescription>
-            <template v-if="appInfo">
-              授权 <span class="font-semibold">{{ appInfo.name }}</span> 访问您的 KV 存储
-            </template>
-            <template v-else>
+
               授权应用访问您的 KV 存储
-            </template>
           </CardDescription>
         </div>
       </CardHeader>
 
       <CardContent class="space-y-6">
         <!-- 应用信息 -->
-        <div v-if="appInfo">
-          <AppCard :app-id="parseInt(appId)" class="mb-4" />
+        <div>
+          <AppCard :app-id="appId" class="mb-4" />
         </div>
 
         <!-- 设备信息 -->
@@ -467,5 +482,12 @@ onMounted(async () => {
 
     <!-- 登录弹框 -->
     <LoginDialog v-model="showLoginDialog" :on-success="handleLoginSuccess" />
+
+    <!-- 设备注册弹框 -->
+    <DeviceRegisterDialog
+      v-model="showRegisterDialog"
+      @confirm="updateUuid"
+      :required="deviceRequired"
+    />
   </div>
 </template>

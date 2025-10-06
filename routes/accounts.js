@@ -465,17 +465,6 @@ router.get("/devices", jwtAuth, async (req, res, next) => {
             name: true,
             createdAt: true,
             updatedAt: true,
-            appInstalls: {
-              include: {
-                app: {
-                  select: {
-                    id: true,
-                    name: true,
-                    iconHash: true,
-                  },
-                },
-              },
-            },
           },
         },
       },

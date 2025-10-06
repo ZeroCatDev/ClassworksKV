@@ -27,7 +27,6 @@ export const kvTokenAuth = async (req, res, next) => {
     const appInstall = await prisma.appInstall.findUnique({
       where: { token },
       include: {
-        app: true,
         device: true,
       },
     });
@@ -38,7 +37,6 @@ export const kvTokenAuth = async (req, res, next) => {
 
     // 将信息存储到res.locals供后续使用
     res.locals.device = appInstall.device;
-    res.locals.app = appInstall.app;
     res.locals.appInstall = appInstall;
     res.locals.deviceId = appInstall.device.id;
 

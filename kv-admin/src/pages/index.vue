@@ -27,6 +27,7 @@ const copied = ref(null)
 const deviceInfo = ref(null) // 存储设备信息
 const deviceAccount = ref(null) // 设备账户信息
 const accountStore = useAccountStore()
+const appInfoCache = ref({}) // 缓存应用信息
 
 // Dialogs
 const showAuthorizeDialog = ref(false)
@@ -63,8 +64,6 @@ const groupedByApp = computed(() => {
     if (!groups[appId]) {
       groups[appId] = {
         appId: appId,
-        appName: token.appName || appId,
-        description: token.appDescription || '',
         tokens: []
       }
     }
@@ -108,6 +107,20 @@ const loadTokens = async () => {
   try {
     const response = await apiClient.getDeviceTokens(deviceUuid.value)
     tokens.value = response.tokens || []
+
+    // 预加载应用信息
+    for (const token of tokens.value) {
+      if (!appInfoCache.value[token.appId]) {
+        try {
+          const appResponse = await fetch(`https://zerocat-api.houlangs.com/oauth/applications/${token.appId}`)
+          if (appResponse.ok) {
+            appInfoCache.value[token.appId] = await appResponse.json()
+          }
+        } catch (err) {
+          console.error(`Failed to load app info for ${token.appId}:`, err)
+        }
+      }
+    }
   } catch (error) {
     console.error('Failed to load tokens:', error)
     if (error.message.includes('设备不存在')) {
@@ -116,6 +129,11 @@ const loadTokens = async () => {
   } finally {
     isLoading.value = false
   }
+}
+
+// 获取应用名称的辅助函数
+const getAppName = (appId) => {
+  return appInfoCache.value[appId]?.name || `应用 ${appId}`
 }
 
 const authorizeApp = async () => {
@@ -715,7 +733,7 @@ onMounted(async () => {
             <div class="p-4 bg-muted rounded-lg space-y-2">
               <div class="text-sm">
                 <span class="font-medium">应用: </span>
-                {{ selectedToken.appName }}
+                {{ getAppName(selectedToken.appId) }}
               </div>
               <div class="text-sm">
                 <span class="font-medium">令牌: </span>

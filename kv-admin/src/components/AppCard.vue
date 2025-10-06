@@ -38,18 +38,12 @@ const error = ref(null);
 const showDialog = ref(false);
 
 // 从环境变量获取 assets URL
-const assetsBaseUrl = import.meta.env.VITE_ASSETS_URL || "";
+const assetsBaseUrl = "https://zerocat-bitiful.houlangs.com/material/asset";
 
-// 根据 iconHash 生成图片 URL
+// 根据 logo_url 生成图片 URL
 const iconUrl = computed(() => {
-  if (!app.value?.iconHash) return null;
-  const hash = app.value.iconHash;
-  if (hash.length < 4) return null;
-
-  const folder1 = hash.substring(0, 2);
-  const folder2 = hash.substring(2, 4);
-
-  return `${assetsBaseUrl}/${folder1}/${folder2}/${hash}.webp`;
+  if (!app.value?.logo_url) return null;
+  return `${assetsBaseUrl}/${app.value.logo_url}`;
 });
 
 // 渲染 Markdown 为 HTML
@@ -61,9 +55,15 @@ const renderedReadme = computed(() => {
 // 获取应用信息
 const fetchApp = async () => {
   try {
-    app.value = await axios.get(`/apps/info/${props.appId}`);
+    const response = await fetch(`https://zerocat-api.houlangs.com/oauth/applications/${props.appId}`);
 
-    if (app.value.repositoryUrl) {
+    if (!response.ok) {
+      throw new Error(`Failed to fetch app info: ${response.status}`);
+    }
+
+    app.value = await response.json();
+
+    if (app.value.homepage_url) {
       await fetchReadme();
     }
   } catch (err) {
@@ -75,9 +75,9 @@ const fetchApp = async () => {
 
 // 检测 Git 平台并获取 README
 const fetchReadme = async () => {
-  if (!app.value?.repositoryUrl) return;
+  if (!app.value?.homepage_url) return;
 
-  const url = app.value.repositoryUrl;
+  const url = app.value.homepage_url;
   let readmeUrl = null;
 
   try {
@@ -207,7 +207,7 @@ fetchApp();
               {{ app.description }}
             </CardDescription>
             <div class="mt-2 text-xs text-muted-foreground">
-              <span>{{ app.developerName }}</span>
+              <span>{{ app.owner?.display_name || app.owner?.username }}</span>
             </div>
           </div>
         </div>
@@ -239,23 +239,12 @@ fetchApp();
         <div class="grid grid-cols-2 gap-4 py-4 border-y">
           <div class="space-y-1">
             <div class="text-sm text-muted-foreground">开发者</div>
-            <div class="font-medium">{{ app.developerName }}</div>
+            <div class="font-medium">{{ app.owner?.display_name || app.owner?.username }}</div>
           </div>
-          <div v-if="app.developerLink" class="space-y-1">
-            <div class="text-sm text-muted-foreground">开发者链接</div>
-            <a
-              :href="app.developerLink"
-              target="_blank"
-              class="text-primary hover:underline inline-flex items-center gap-1"
-            >
-              访问
-              <ExternalLink class="h-3 w-3" />
-            </a>
-          </div>
-          <div v-if="app.homepageLink" class="space-y-1">
+          <div v-if="app.homepage_url" class="space-y-1">
             <div class="text-sm text-muted-foreground">应用主页</div>
             <a
-              :href="app.homepageLink"
+              :href="app.homepage_url"
               target="_blank"
               class="text-primary hover:underline inline-flex items-center gap-1"
             >
@@ -263,14 +252,25 @@ fetchApp();
               <ExternalLink class="h-3 w-3" />
             </a>
           </div>
-          <div v-if="app.repositoryUrl" class="space-y-1">
-            <div class="text-sm text-muted-foreground">仓库地址</div>
+          <div v-if="app.terms_url" class="space-y-1">
+            <div class="text-sm text-muted-foreground">服务条款</div>
             <a
-              :href="app.repositoryUrl"
+              :href="app.terms_url"
               target="_blank"
               class="text-primary hover:underline inline-flex items-center gap-1 truncate"
             >
-              查看仓库
+              查看
+              <ExternalLink class="h-3 w-3" />
+            </a>
+          </div>
+          <div v-if="app.privacy_url" class="space-y-1">
+            <div class="text-sm text-muted-foreground">隐私政策</div>
+            <a
+              :href="app.privacy_url"
+              target="_blank"
+              class="text-primary hover:underline inline-flex items-center gap-1 truncate"
+            >
+              查看
               <ExternalLink class="h-3 w-3" />
             </a>
           </div>
@@ -286,7 +286,7 @@ fetchApp();
         ></div>
       </div>
       <div
-        v-else-if="!loading && app?.repositoryUrl"
+        v-else-if="!loading && app?.homepage_url"
         class="mt-6 text-center text-muted-foreground"
       >
         无法加载 README 文件
