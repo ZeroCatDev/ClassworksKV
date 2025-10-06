@@ -24,10 +24,10 @@ export const oauthProviders = {
     color: "#6366f1",
     description: "使用 ZeroCat 账号登录",
   },
-  houlang: {
+  hly: {
     // 厚浪云（Logto） - OIDC Provider
-    clientId: process.env.HOULANG_CLIENT_ID,
-    clientSecret: process.env.HOULANG_CLIENT_SECRET, // 可选：若使用PKCE且应用为Public，可不配置
+    clientId: process.env.HLY_CLIENT_ID,
+    clientSecret: process.env.HLY_CLIENT_SECRET, // 可选：若使用PKCE且应用为Public，可不配置
     authorizationURL: "https://oauth.houlang.cloud/oidc/auth",
     tokenURL: "https://oauth.houlang.cloud/oidc/token",
     userInfoURL: "https://oauth.houlang.cloud/oidc/me",

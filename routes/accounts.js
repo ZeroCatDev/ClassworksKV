@@ -229,7 +229,7 @@ router.get("/oauth/:provider/callback", async (req, res) => {
         name: userData.nickname || userData.username,
         avatarUrl: userData.avatar,
       };
-    } else if (provider === "houlang") {
+    } else if (provider === "hly") {
       // 厚浪云（Logto）标准OIDC用户信息
       normalizedUser = {
         providerId: userData.sub,
