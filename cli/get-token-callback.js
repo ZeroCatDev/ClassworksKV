@@ -24,7 +24,7 @@ const CONFIG = {
   // 应用ID
   appId: process.env.APP_ID || '1',
   // 授权页面地址（Classworks前端）
-  authPageUrl: process.env.AUTH_PAGE_URL || 'http://localhost:5173/authorize',
+  authPageUrl: process.env.FRONTEND_URL,
   // 本地回调服务器端口
   callbackPort: process.env.CALLBACK_PORT || '8080',
   // 回调路径
