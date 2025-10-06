@@ -11,6 +11,24 @@ const prisma = new PrismaClient();
 // 存储OAuth state，防止CSRF攻击（生产环境应使用Redis等）
 const oauthStates = new Map();
 
+// 生成PKCE code_verifier 和 code_challenge
+function generatePkcePair() {
+  const codeVerifier = crypto
+    .randomBytes(32)
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+  const challenge = crypto
+    .createHash("sha256")
+    .update(codeVerifier)
+    .digest("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+  return { codeVerifier, codeChallenge: challenge };
+}
+
 /**
  * 生成安全的访问令牌
  */
@@ -27,7 +45,8 @@ router.get("/oauth/providers", (req, res) => {
 
   for (const [key, config] of Object.entries(oauthProviders)) {
     // 只返回已配置的提供者
-    if (config.clientId && config.clientSecret) {
+    const pkceAllowed = !!config.pkce;
+    if (config.clientId && (config.clientSecret || pkceAllowed)) {
       providers.push({
         id: key,
         name: config.name,
@@ -64,7 +83,8 @@ router.get("/oauth/:provider", (req, res) => {
     });
   }
 
-  if (!providerConfig.clientId || !providerConfig.clientSecret) {
+  const pkceAllowed = !!providerConfig.pkce;
+  if (!providerConfig.clientId || (!providerConfig.clientSecret && !pkceAllowed)) {
     return res.status(500).json({
       success: false,
       message: `OAuth提供者 ${provider} 未配置`,
@@ -74,11 +94,20 @@ router.get("/oauth/:provider", (req, res) => {
   // 生成state参数
   const state = generateState();
 
+  // PKCE: 若启用，为此次会话生成code_verifier/challenge
+  let codeChallenge, codeVerifier;
+  if (pkceAllowed) {
+    const pair = generatePkcePair();
+    codeVerifier = pair.codeVerifier;
+    codeChallenge = pair.codeChallenge;
+  }
+
   // 保存state和redirect_uri（5分钟过期）
   oauthStates.set(state, {
     provider,
     redirect_uri,
     timestamp: Date.now(),
+    codeVerifier,
   });
 
   // 清理过期的state（超过5分钟）
@@ -101,6 +130,11 @@ router.get("/oauth/:provider", (req, res) => {
   if (provider === "google") {
     params.append("access_type", "offline");
     params.append("prompt", "consent");
+  }
+
+  if (pkceAllowed && codeChallenge) {
+    params.append("code_challenge", codeChallenge);
+    params.append("code_challenge_method", "S256");
   }
 
   const authUrl = `${providerConfig.authorizationURL}?${params.toString()}`;
@@ -153,10 +187,12 @@ router.get("/oauth/:provider/callback", async (req, res) => {
       },
       body: new URLSearchParams({
         client_id: providerConfig.clientId,
-        client_secret: providerConfig.clientSecret,
+        ...(providerConfig.clientSecret ? { client_secret: providerConfig.clientSecret } : {}),
         code: code,
         grant_type: "authorization_code",
         redirect_uri: getCallbackURL(provider),
+        // PKCE: 携带code_verifier
+        ...(stateData?.codeVerifier ? { code_verifier: stateData.codeVerifier } : {}),
       }),
     });
 
@@ -176,7 +212,7 @@ router.get("/oauth/:provider/callback", async (req, res) => {
 
     const userData = await userResponse.json();
 
-    // 3. 标准化用户数据（不同提供者返回的字段不同）
+  // 3. 标准化用户数据（不同提供者返回的字段不同）
     let normalizedUser = {};
 
     if (provider === "github") {
@@ -193,6 +229,22 @@ router.get("/oauth/:provider/callback", async (req, res) => {
         name: userData.nickname || userData.username,
         avatarUrl: userData.avatar,
       };
+    } else if (provider === "houlang") {
+      // 厚浪云（Logto）标准OIDC用户信息
+      normalizedUser = {
+        providerId: userData.sub,
+        email: userData.email_verified ? userData.email : null,
+        name: userData.name || userData.preferred_username || userData.nickname,
+        avatarUrl: userData.picture,
+      };
+    }
+
+    // 名称为空时，用邮箱@前部分回填（若邮箱可用）
+    if ((!normalizedUser.name || normalizedUser.name.trim() === "") && normalizedUser.email) {
+      const at = normalizedUser.email.indexOf("@");
+      if (at > 0) {
+        normalizedUser.name = normalizedUser.email.substring(0, at);
+      }
     }
 
     // 4. 查找或创建账户
