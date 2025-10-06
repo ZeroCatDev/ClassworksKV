@@ -1,17 +1,9 @@
 #!/usr/bin/env node
 import { execSync } from "child_process";
-import fs from "fs";
-import path from "path";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-const PRISMA_DIR = path.join(process.cwd(), "prisma");
-const DATABASE_TYPE = process.env.DATABASE_TYPE || "sqlite";
-const DATABASE_URL =
-  DATABASE_TYPE === "sqlite"
-    ? "file:/data/db.sqlite"
-    : process.env.DATABASE_URL;
 
 // 🔄 执行数据库迁移函数
 function runDatabaseMigration() {
@@ -28,48 +20,6 @@ function runDatabaseMigration() {
 // 🧱 数据库初始化函数
 function setupDatabase() {
   try {
-    // 如果是 SQLite，确保 /data 目录存在
-    if (DATABASE_TYPE === "sqlite") {
-      if (!fs.existsSync("/data")) {
-        fs.mkdirSync("/data", { recursive: true });
-      }
-    } else if (!DATABASE_URL) {
-      console.error("❌ 缺少 DATABASE_URL 环境变量");
-      process.exit(1);
-    }
-
-    // 从对应数据库类型的配置目录中复制配置文件
-    const sourceDir = path.join(PRISMA_DIR, "database", DATABASE_TYPE);
-    if (!fs.existsSync(sourceDir)) {
-      console.error(`❌ 数据库配置未找到：${sourceDir}`);
-      process.exit(1);
-    }
-
-    // 递归复制函数
-    function copyRecursive(src, dest) {
-      const stats = fs.statSync(src);
-      if (stats.isDirectory()) {
-        if (!fs.existsSync(dest)) {
-          fs.mkdirSync(dest, { recursive: true });
-        }
-        const entries = fs.readdirSync(src);
-        for (const entry of entries) {
-          copyRecursive(path.join(src, entry), path.join(dest, entry));
-        }
-      } else {
-        fs.copyFileSync(src, dest);
-      }
-    }
-
-    // 将所有配置文件和目录复制到 prisma 根目录下
-    const entries = fs.readdirSync(sourceDir);
-    for (const entry of entries) {
-      const sourcePath = path.join(sourceDir, entry);
-      const targetPath = path.join(PRISMA_DIR, entry);
-      copyRecursive(sourcePath, targetPath);
-    }
-    console.log(`✅ 已复制 ${DATABASE_TYPE} 数据库配置文件和目录`);
-
     // 执行数据库迁移
     runDatabaseMigration();
   } catch (error) {
@@ -95,7 +45,6 @@ function buildLocal() {
 // 🚀 启动服务函数
 function startServer() {
   try {
-    console.log(`🚀 使用 ${DATABASE_TYPE} 数据库启动服务中...`);
     execSync("npm run start", { stdio: "inherit" }); // 启动项目
   } catch (error) {
     console.error("❌ 服务启动失败:", error.message);

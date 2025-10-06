@@ -6,7 +6,6 @@
     "start": "node ./bin/www",
     "prisma": "prisma generate",
     "dev": "NODE_ENV=development nodemon node .bin/www",
-    "migrate": "node ./scripts/batchMigrate.js",
     "get-token": "node ./cli/get-token.js"
   },
   "type": "module",
