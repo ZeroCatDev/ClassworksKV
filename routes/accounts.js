@@ -310,7 +310,7 @@ router.get("/oauth/:provider/callback", async (req, res) => {
           name: normalizedUser.name || account.name,
           avatarUrl: normalizedUser.avatarUrl || account.avatarUrl,
           providerData: userData,
-          refreshToken: tokenData.refresh_token || account.refreshToken,
+          //refreshToken: tokenData.refresh_token || account.refreshToken,
           updatedAt: new Date(),
         },
       });
@@ -326,7 +326,7 @@ router.get("/oauth/:provider/callback", async (req, res) => {
           avatarUrl: normalizedUser.avatarUrl,
           providerData: userData,
           accessToken,
-          refreshToken: tokenData.refresh_token,
+          //refreshToken: tokenData.refresh_token,
         },
       });
     }

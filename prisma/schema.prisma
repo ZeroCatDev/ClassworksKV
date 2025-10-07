@@ -29,8 +29,7 @@ model Account {
   name             String?  // 用户名称
   avatarUrl        String?  // 用户头像URL
   providerData     Json?    // OAuth提供者返回的完整信息
-  accessToken      String   @db.Text // 账户访问令牌
-  refreshToken     String?  @db.Text // OAuth refresh token (如果提供者支持) - 可能很长，使用 TEXT
+  accessToken      String?   @db.Text // 账户访问令牌
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
