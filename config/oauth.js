@@ -11,8 +11,9 @@ export const oauthProviders = {
     name: "GitHub",
     displayName: "GitHub",
     icon: "github",
-    color: "#24292e",          // 兼容旧字段
+    color: "#24292e",
     description: "使用 GitHub 账号登录",
+    website: "https://github.com",
   },
   zerocat: {
     clientId: process.env.ZEROCAT_CLIENT_ID,
@@ -25,8 +26,9 @@ export const oauthProviders = {
     name: "ZeroCat",
     displayName: "ZeroCat",
     icon: "zerocat",
-    color: "#6366f1",
+    color: "#415f91",
     description: "使用 ZeroCat 账号登录",
+    website: "https://zerocat.dev",
   },
   stcn: {
     // STCN（Casdoor）- 标准 OIDC Provider
@@ -41,14 +43,15 @@ export const oauthProviders = {
     name: "stcn",
     displayName: "智教联盟账户",
     icon: "casdoor",
-    color: "#1f6feb",
+    color: "#1068af",
     description: "使用智教联盟账户登录",
+    website: "https://auth.smart-teach.cn",
     tokenRequestFormat: "json", // Casdoor 推荐 JSON 提交
   },
   hly: {
     // 厚浪云（Logto） - OIDC Provider
     clientId: process.env.HLY_CLIENT_ID,
-    clientSecret: process.env.HLY_CLIENT_SECRET, // 可选：若使用PKCE且应用为Public，可不配置
+    clientSecret: process.env.HLY_CLIENT_SECRET,
     authorizationURL: "https://oauth.houlang.cloud/oidc/auth",
     tokenURL: "https://oauth.houlang.cloud/oidc/token",
     userInfoURL: "https://oauth.houlang.cloud/oidc/me",
@@ -57,11 +60,11 @@ export const oauthProviders = {
     name: "厚浪云",
     displayName: "厚浪云",
     icon: "logto",
-    color: "#0ea5e9",
-    brandColor: "#0ea5e9",
+    color: "#2d53f8",
     textColor: "#ffffff",
     order: 40,
     description: "使用厚浪云账号登录",
+    website: "https://houlang.cloud",
     pkce: true, // 启用PKCE支持
   },
 };
