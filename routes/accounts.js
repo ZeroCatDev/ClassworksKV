@@ -58,6 +58,7 @@ router.get("/oauth/providers", (req, res) => {
         description: config.description,
         order: typeof config.order === 'number' ? config.order : 9999,
         authUrl: `/accounts/oauth/${key}`, // 前端用于发起认证的URL
+        website: config.website,
       });
     }
   }
@@ -399,6 +400,7 @@ router.get("/profile", jwtAuth, async (req, res, next) => {
       textColor: pconf.textColor || "#ffffff",
       description: pconf.description,
       order: typeof pconf.order === 'number' ? pconf.order : undefined,
+      website: pconf.website,
     };
 
     res.json({
