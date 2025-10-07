@@ -7,9 +7,11 @@ export const oauthProviders = {
     tokenURL: "https://github.com/login/oauth/access_token",
     userInfoURL: "https://api.github.com/user",
     scope: "read:user user:email",
+    // 展示相关
     name: "GitHub",
+    displayName: "GitHub",
     icon: "github",
-    color: "#24292e",
+    color: "#24292e",          // 兼容旧字段
     description: "使用 GitHub 账号登录",
   },
   zerocat: {
@@ -19,10 +21,29 @@ export const oauthProviders = {
     tokenURL: "https://zerocat-api.houlangs.com/oauth/token",
     userInfoURL: "https://zerocat-api.houlangs.com/oauth/userinfo",
     scope: "user:basic user:email",
+    // 展示相关
     name: "ZeroCat",
+    displayName: "ZeroCat",
     icon: "zerocat",
     color: "#6366f1",
     description: "使用 ZeroCat 账号登录",
+  },
+  stcn: {
+    // STCN（Casdoor）- 标准 OIDC Provider
+    clientId: process.env.STCN_CLIENT_ID,
+    clientSecret: process.env.STCN_CLIENT_SECRET,
+    // Casdoor 标准端点
+    authorizationURL: "https://auth.smart-teach.cn/login/oauth/authorize",
+    tokenURL: "https://auth.smart-teach.cn/api/login/oauth/access_token",
+    userInfoURL: "https://auth.smart-teach.cn/api/userinfo",
+    scope: "openid profile email offline_access",
+    // 展示相关
+    name: "stcn",
+    displayName: "智教联盟账户",
+    icon: "casdoor",
+    color: "#1f6feb",
+    description: "使用智教联盟账户登录",
+    tokenRequestFormat: "json", // Casdoor 推荐 JSON 提交
   },
   hly: {
     // 厚浪云（Logto） - OIDC Provider
@@ -32,9 +53,14 @@ export const oauthProviders = {
     tokenURL: "https://oauth.houlang.cloud/oidc/token",
     userInfoURL: "https://oauth.houlang.cloud/oidc/me",
     scope: "openid profile email offline_access",
+    // 展示相关
     name: "厚浪云",
+    displayName: "厚浪云",
     icon: "logto",
     color: "#0ea5e9",
+    brandColor: "#0ea5e9",
+    textColor: "#ffffff",
+    order: 40,
     description: "使用厚浪云账号登录",
     pkce: true, // 启用PKCE支持
   },

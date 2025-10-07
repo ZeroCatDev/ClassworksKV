@@ -140,7 +140,6 @@ router.post(
   errors.catchAsync(async (req, res, next) => {
     const { uuid } = req.params;
     const newPassword = req.query.newPassword || req.body.newPassword;
-    const passwordHint = req.query.passwordHint || req.body.passwordHint;
 
     if (!newPassword) {
       return next(errors.createError(400, "新密码是必需的"));
@@ -166,7 +165,6 @@ router.post(
       where: { id: device.id },
       data: {
         password: hashedPassword,
-        passwordHint: passwordHint || null,
       },
     });
 

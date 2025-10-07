@@ -41,7 +41,7 @@ function generateAccessToken() {
  * GET /accounts/oauth/providers
  */
 router.get("/oauth/providers", (req, res) => {
-  const providers = [];
+  let providers = [];
 
   for (const [key, config] of Object.entries(oauthProviders)) {
     // 只返回已配置的提供者
@@ -50,13 +50,20 @@ router.get("/oauth/providers", (req, res) => {
       providers.push({
         id: key,
         name: config.name,
+        displayName: config.displayName || config.name,
         icon: config.icon,
-        color: config.color,
+        color: config.color,               // 向后兼容
+        brandColor: config.brandColor || config.color,
+        textColor: config.textColor || "#ffffff",
         description: config.description,
+        order: typeof config.order === 'number' ? config.order : 9999,
         authUrl: `/accounts/oauth/${key}`, // 前端用于发起认证的URL
       });
     }
   }
+
+  // 按 order 排序（从小到大）
+  providers = providers.sort((a, b) => a.order - b.order);
 
   res.json({
     success: true,
@@ -179,22 +186,42 @@ router.get("/oauth/:provider/callback", async (req, res) => {
 
   try {
     // 1. 使用授权码换取访问令牌
-    const tokenResponse = await fetch(providerConfig.tokenURL, {
-      method: "POST",
-      headers: {
-        "Accept": "application/json",
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({
-        client_id: providerConfig.clientId,
-        ...(providerConfig.clientSecret ? { client_secret: providerConfig.clientSecret } : {}),
-        code: code,
-        grant_type: "authorization_code",
-        redirect_uri: getCallbackURL(provider),
-        // PKCE: 携带code_verifier
-        ...(stateData?.codeVerifier ? { code_verifier: stateData.codeVerifier } : {}),
-      }),
-    });
+    let tokenResponse;
+    if (providerConfig.tokenRequestFormat === 'json') {
+      tokenResponse = await fetch(providerConfig.tokenURL, {
+        method: "POST",
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          client_id: providerConfig.clientId,
+          ...(providerConfig.clientSecret ? { client_secret: providerConfig.clientSecret } : {}),
+          code: code,
+          grant_type: "authorization_code",
+          redirect_uri: getCallbackURL(provider),
+          // PKCE: 携带code_verifier
+          ...(stateData?.codeVerifier ? { code_verifier: stateData.codeVerifier } : {}),
+        }),
+      });
+    } else {
+      tokenResponse = await fetch(providerConfig.tokenURL, {
+        method: "POST",
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          client_id: providerConfig.clientId,
+          ...(providerConfig.clientSecret ? { client_secret: providerConfig.clientSecret } : {}),
+          code: code,
+          grant_type: "authorization_code",
+          redirect_uri: getCallbackURL(provider),
+          // PKCE: 携带code_verifier
+          ...(stateData?.codeVerifier ? { code_verifier: stateData.codeVerifier } : {}),
+        }),
+      });
+    }
 
     const tokenData = await tokenResponse.json();
 
@@ -203,12 +230,20 @@ router.get("/oauth/:provider/callback", async (req, res) => {
     }
 
     // 2. 使用访问令牌获取用户信息
-    const userResponse = await fetch(providerConfig.userInfoURL, {
-      headers: {
-        "Authorization": `Bearer ${tokenData.access_token}`,
-        "Accept": "application/json",
-      },
-    });
+    let userResponse;
+    // Casdoor 支持两种方式：Authorization Bearer 或 accessToken 查询参数
+    if (provider === 'stcn') {
+      const url = new URL(providerConfig.userInfoURL);
+      url.searchParams.set('accessToken', tokenData.access_token);
+      userResponse = await fetch(url, { headers: { "Accept": "application/json" } });
+    } else {
+      userResponse = await fetch(providerConfig.userInfoURL, {
+        headers: {
+          "Authorization": `Bearer ${tokenData.access_token}`,
+          "Accept": "application/json",
+        },
+      });
+    }
 
     const userData = await userResponse.json();
 
@@ -234,6 +269,14 @@ router.get("/oauth/:provider/callback", async (req, res) => {
       normalizedUser = {
         providerId: userData.sub,
         email: userData.email_verified ? userData.email : null,
+        name: userData.name || userData.preferred_username || userData.nickname,
+        avatarUrl: userData.picture,
+      };
+    } else if (provider === "stcn") {
+      // STCN（Casdoor）标准OIDC用户信息
+      normalizedUser = {
+        providerId: userData.sub,
+        email: userData.email_verified ? userData.email : userData.email || null,
         name: userData.name || userData.preferred_username || userData.nickname,
         avatarUrl: userData.picture,
       };
@@ -295,6 +338,12 @@ router.get("/oauth/:provider/callback", async (req, res) => {
     const callbackUrl = new URL(frontendBaseUrl);
     callbackUrl.searchParams.append("token", jwtToken);
     callbackUrl.searchParams.append("provider", provider);
+    // 附带展示信息，便于前端显示品牌与名称
+    const pconf = oauthProviders[provider] || {};
+    callbackUrl.searchParams.append("providerName", pconf.displayName || pconf.name || provider);
+    if (pconf.brandColor || pconf.color) {
+      callbackUrl.searchParams.append("providerColor", pconf.brandColor || pconf.color);
+    }
     callbackUrl.searchParams.append("success", "true");
 
     res.redirect(callbackUrl.toString());
@@ -338,11 +387,26 @@ router.get("/profile", jwtAuth, async (req, res, next) => {
       },
     });
 
+    // 组装 provider 展示信息
+    const pconf = (account?.provider && oauthProviders[account.provider]) || {};
+    const providerInfo = {
+      id: account?.provider || undefined,
+      name: pconf.name,
+      displayName: pconf.displayName || pconf.name || account?.provider,
+      icon: pconf.icon,
+      color: pconf.color, // 兼容字段
+      brandColor: pconf.brandColor || pconf.color,
+      textColor: pconf.textColor || "#ffffff",
+      description: pconf.description,
+      order: typeof pconf.order === 'number' ? pconf.order : undefined,
+    };
+
     res.json({
       success: true,
       data: {
         id: account.id,
         provider: account.provider,
+        providerInfo,
         email: account.email,
         name: account.name,
         avatarUrl: account.avatarUrl,

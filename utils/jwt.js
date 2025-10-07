@@ -1,33 +1,48 @@
 import jwt from 'jsonwebtoken';
 
-// JWT密钥 - 生产环境应该从环境变量读取
+// JWT 配置（支持 HS256 与 RS256）
+const JWT_ALG = (process.env.JWT_ALG || 'HS256').toUpperCase();
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+
+// HS256 密钥
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production';
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d'; // 默认7天过期
+
+// RS256 密钥对（PEM 格式字符串）
+const JWT_PRIVATE_KEY = process.env.JWT_PRIVATE_KEY?.replace(/\\n/g, '\n');
+const JWT_PUBLIC_KEY = process.env.JWT_PUBLIC_KEY?.replace(/\\n/g, '\n');
+
+function getSignVerifyKeys() {
+  if (JWT_ALG === 'RS256') {
+    if (!JWT_PRIVATE_KEY || !JWT_PUBLIC_KEY) {
+      throw new Error('RS256 需要同时提供 JWT_PRIVATE_KEY 与 JWT_PUBLIC_KEY');
+    }
+    return { signKey: JWT_PRIVATE_KEY, verifyKey: JWT_PUBLIC_KEY };
+  }
+  // 默认 HS256
+  return { signKey: JWT_SECRET, verifyKey: JWT_SECRET };
+}
 
 /**
  * 签发JWT token
- * @param {Object} payload - 要编码的数据
- * @returns {string} JWT token
  */
 export function signToken(payload) {
-  return jwt.sign(payload, JWT_SECRET, {
+  const { signKey } = getSignVerifyKeys();
+  return jwt.sign(payload, signKey, {
     expiresIn: JWT_EXPIRES_IN,
+    algorithm: JWT_ALG,
   });
 }
 
 /**
  * 验证JWT token
- * @param {string} token - JWT token
- * @returns {Object} 解码后的payload
  */
 export function verifyToken(token) {
-  return jwt.verify(token, JWT_SECRET);
+  const { verifyKey } = getSignVerifyKeys();
+  return jwt.verify(token, verifyKey, { algorithms: [JWT_ALG] });
 }
 
 /**
  * 为账户生成JWT token
- * @param {Object} account - 账户对象
- * @returns {string} JWT token
  */
 export function generateAccountToken(account) {
   return signToken({
