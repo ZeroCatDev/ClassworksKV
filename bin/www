@@ -6,6 +6,7 @@
 
 import app from '../app.js';
 import { createServer } from 'http';
+import { initSocket } from '../utils/socket.js';
 
 /**
  * Get port from environment and store in Express.
@@ -19,6 +20,9 @@ app.set("port", port);
  */
 
 var server = createServer(app);
+
+// 初始化 Socket.IO 并绑定到 HTTP Server
+initSocket(server);
 
 /**
  * Listen on provided port, on all network interfaces.

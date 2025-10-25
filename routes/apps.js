@@ -75,6 +75,7 @@ router.post(
         appId: installation.appId,
         token: installation.token,
         note: installation.note,
+        name: installation.note, // 备注同时作为名称返回
         installedAt: installation.createdAt,
       });
   })
@@ -146,6 +147,7 @@ router.get(
       appId: install.appId,
       installedAt: install.installedAt,
       note: install.note,
+      name: install.note, // 备注同时作为名称返回
     }));
 
     return res.json({

@@ -5,6 +5,7 @@ import { PrismaClient } from "@prisma/client";
 import crypto from "crypto";
 import errors from "../utils/errors.js";
 import { hashPassword, verifyDevicePassword } from "../utils/crypto.js";
+import { getOnlineDevices } from "../utils/socket.js";
 
 const prisma = new PrismaClient();
 
@@ -323,3 +324,35 @@ router.delete(
 );
 
 export default router;
+
+/**
+ * GET /devices/online
+ * 查询在线设备（WebSocket 已连接）
+ * 返回：[{ uuid, connections, name? }]
+ */
+router.get(
+  "/online",
+  errors.catchAsync(async (req, res) => {
+    const list = getOnlineDevices();
+
+    if (list.length === 0) {
+      return res.json({ success: true, devices: [] });
+    }
+
+    // 补充设备名称
+    const uuids = list.map((x) => x.uuid);
+    const rows = await prisma.device.findMany({
+      where: { uuid: { in: uuids } },
+      select: { uuid: true, name: true },
+    });
+    const nameMap = new Map(rows.map((r) => [r.uuid, r.name]));
+
+    const devices = list.map((x) => ({
+      uuid: x.uuid,
+      connections: x.connections,
+      name: nameMap.get(x.uuid) || null,
+    }));
+
+    res.json({ success: true, devices });
+  })
+);

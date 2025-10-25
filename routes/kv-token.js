@@ -1,6 +1,7 @@
 import { Router } from "express";
 const router = Router();
 import kvStore from "../utils/kvStore.js";
+import { broadcastKeyChanged } from "../utils/socket.js";
 import { kvTokenAuth } from "../middleware/kvTokenAuth.js";
 import errors from "../utils/errors.js";
 import { PrismaClient } from "@prisma/client";
@@ -219,7 +220,7 @@ router.post(
       req.connection.socket?.remoteAddress ||
       "";
 
-    const results = [];
+  const results = [];
     const errorList = [];
 
     // 批量处理所有键值对
@@ -230,6 +231,17 @@ router.post(
           key: result.key,
           created: result.createdAt.getTime() === result.updatedAt.getTime(),
         });
+        // 广播每个键的变更
+        const uuid = res.locals.device?.uuid;
+        if (uuid) {
+          broadcastKeyChanged(uuid, {
+            key: result.key,
+            action: "upsert",
+            created: result.createdAt.getTime() === result.updatedAt.getTime(),
+            updatedAt: result.updatedAt,
+            batch: true,
+          });
+        }
       } catch (error) {
         errorList.push({
           key,
@@ -273,6 +285,18 @@ router.post(
       "";
 
     const result = await kvStore.upsert(deviceId, key, value, creatorIp);
+
+    // 广播单个键的变更
+    const uuid = res.locals.device?.uuid;
+    if (uuid) {
+      broadcastKeyChanged(uuid, {
+        key: result.key,
+        action: "upsert",
+        created: result.createdAt.getTime() === result.updatedAt.getTime(),
+        updatedAt: result.updatedAt,
+      });
+    }
+
     return res.status(200).json({
       deviceId: result.deviceId,
       key: result.key,
@@ -298,6 +322,16 @@ router.delete(
       return next(
         errors.createError(404, `未找到键名为 '${key}' 的记录`)
       );
+    }
+
+    // 广播删除
+    const uuid = res.locals.device?.uuid;
+    if (uuid) {
+      broadcastKeyChanged(uuid, {
+        key,
+        action: "delete",
+        deletedAt: new Date(),
+      });
     }
 
     // 204状态码表示成功但无内容返回
