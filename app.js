@@ -20,6 +20,7 @@ import appsRouter from "./routes/apps.js";
 import deviceRouter from "./routes/device.js";
 import deviceAuthRouter from "./routes/device-auth.js";
 import accountsRouter from "./routes/accounts.js";
+import autoAuthRouter from "./routes/auto-auth.js";
 
 var app = express();
 
@@ -86,6 +87,9 @@ app.get("/check", apiLimiter, (req, res) => {
 
 // Mount the Apps router with API rate limiting
 app.use("/apps", apiLimiter, appsRouter);
+
+// Mount the Auto Auth router with API rate limiting
+app.use("/auto-auth", apiLimiter, autoAuthRouter);
 
 // Mount the Device router with API rate limiting
 app.use("/devices", apiLimiter, deviceRouter);

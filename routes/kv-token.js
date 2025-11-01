@@ -57,6 +57,54 @@ router.get(
 );
 
 /**
+ * GET /_token
+ * 获取当前 KV Token 的详细信息（类型、备注等）
+ */
+router.get(
+  "/_token",
+  errors.catchAsync(async (req, res, next) => {
+    const token = res.locals.token;
+    const deviceId = res.locals.deviceId;
+
+    // 查找当前 token 对应的应用安装记录
+    const appInstall = await prisma.appInstall.findUnique({
+      where: { token },
+      include: {
+        device: {
+          select: {
+            id: true,
+            uuid: true,
+            name: true,
+            namespace: true,
+          },
+        },
+      },
+    });
+
+    if (!appInstall) {
+      return next(errors.createError(404, "Token 信息不存在"));
+    }
+
+    return res.json({
+      success: true,
+      token: appInstall.token,
+      appId: appInstall.appId,
+      deviceType: appInstall.deviceType,
+      isReadOnly: appInstall.isReadOnly,
+      note: appInstall.note,
+      installedAt: appInstall.installedAt,
+      updatedAt: appInstall.updatedAt,
+      device: {
+        id: appInstall.device.id,
+        uuid: appInstall.device.uuid,
+        name: appInstall.device.name,
+        namespace: appInstall.device.namespace,
+      },
+    });
+  })
+);
+
+/**
  * GET /_keys
  * 获取当前token对应设备的键名列表（分页，不包括内容）
  */
@@ -200,6 +248,11 @@ router.get(
 router.post(
   "/_batchimport",
   errors.catchAsync(async (req, res, next) => {
+    // 检查token是否为只读
+    if (res.locals.appInstall?.isReadOnly) {
+      return next(errors.createError(403, "当前token为只读模式,无法修改数据"));
+    }
+
     const deviceId = res.locals.deviceId;
     const data = req.body;
 
@@ -268,6 +321,11 @@ router.post(
 router.post(
   "/:key",
   errors.catchAsync(async (req, res, next) => {
+    // 检查token是否为只读
+    if (res.locals.appInstall?.isReadOnly) {
+      return next(errors.createError(403, "当前token为只读模式,无法修改数据"));
+    }
+
     const deviceId = res.locals.deviceId;
     const { key } = req.params;
     const value = req.body;
@@ -313,6 +371,11 @@ router.post(
 router.delete(
   "/:key",
   errors.catchAsync(async (req, res, next) => {
+    // 检查token是否为只读
+    if (res.locals.appInstall?.isReadOnly) {
+      return next(errors.createError(403, "当前token为只读模式,无法修改数据"));
+    }
+
     const deviceId = res.locals.deviceId;
     const { key } = req.params;
 

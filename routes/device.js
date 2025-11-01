@@ -16,7 +16,7 @@ const prisma = new PrismaClient();
 router.post(
   "/",
   errors.catchAsync(async (req, res, next) => {
-    const { uuid, deviceName } = req.body;
+    const { uuid, deviceName, namespace } = req.body;
 
     if (!uuid) {
       return next(errors.createError(400, "设备UUID是必需的"));
@@ -35,11 +35,24 @@ router.post(
       return next(errors.createError(409, "设备UUID已存在"));
     }
 
+    // 处理 namespace：如果没有提供，则使用 uuid
+    const deviceNamespace = namespace && namespace.trim() ? namespace.trim() : uuid;
+
+    // 检查 namespace 是否已被使用
+    const existingNamespace = await prisma.device.findUnique({
+      where: { namespace: deviceNamespace },
+    });
+
+    if (existingNamespace) {
+      return next(errors.createError(409, "该 namespace 已被使用"));
+    }
+
     // 创建设备
     const device = await prisma.device.create({
       data: {
         uuid,
         name: deviceName,
+        namespace: deviceNamespace,
       },
     });
 
@@ -49,6 +62,7 @@ router.post(
         id: device.id,
         uuid: device.uuid,
         name: device.name,
+        namespace: device.namespace,
         createdAt: device.createdAt,
       },
     });
@@ -97,6 +111,7 @@ router.get(
           avatarUrl: device.account.avatarUrl,
         } : null,
         isBoundToAccount: !!device.account,
+        namespace: device.namespace,
       });
   })
 );/**

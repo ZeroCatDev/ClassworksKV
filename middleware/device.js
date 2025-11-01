@@ -16,7 +16,7 @@ const prisma = new PrismaClient();
 /**
  * 设备中间件 - 统一处理设备UUID
  *
- * 从req.params.deviceUuid、req.params.namespace或req.body.deviceUuid获取UUID
+ * 从req.params.deviceUuid或req.body.deviceUuid获取UUID
  * 如果设备不存在则自动创建
  * 将设备信息存储到res.locals.device
  *
@@ -25,7 +25,7 @@ const prisma = new PrismaClient();
  * router.get('/path/:deviceUuid', deviceMiddleware, handler)
  */
 export const deviceMiddleware = errors.catchAsync(async (req, res, next) => {
-  const deviceUuid = req.params.deviceUuid || req.params.namespace || req.body.deviceUuid;
+  const deviceUuid = req.params.deviceUuid || req.body.deviceUuid;
 
   if (!deviceUuid) {
     return next(errors.createError(400, "缺少设备UUID"));
@@ -65,7 +65,7 @@ export const deviceMiddleware = errors.catchAsync(async (req, res, next) => {
  * router.get('/path/:deviceUuid', deviceInfoMiddleware, handler)
  */
 export const deviceInfoMiddleware = errors.catchAsync(async (req, res, next) => {
-  const deviceUuid = req.params.deviceUuid || req.params.namespace;
+  const deviceUuid = req.params.deviceUuid ;
 
   if (!deviceUuid) {
     return next(errors.createError(400, "缺少设备UUID"));

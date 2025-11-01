@@ -4,7 +4,6 @@
   "private": true,
   "scripts": {
     "start": "node ./bin/www",
-    "prisma": "prisma generate",
     "dev": "NODE_ENV=development nodemon node .bin/www",
     "get-token": "node ./cli/get-token.js"
   },
@@ -35,6 +34,6 @@
     "uuid": "^11.1.0"
   },
   "devDependencies": {
-    "prisma": "6.16.2"
+    "prisma": "^6.18.0"
   }
 }

@@ -8,7 +8,7 @@ datasource db {
 }
 
 model KVStore {
-  deviceId  Int      // 设备ID，作为namespace的一部分
+  deviceId  Int
   key       String
   value     Json
   creatorIp String?  @default("")
@@ -48,22 +48,41 @@ model Device {
   updatedAt    DateTime   @updatedAt
   password     String?
   passwordHint String?
+  namespace    String?    @unique // 用户自定义的唯一命名空间
 
   // 关联关系
   account      Account?   @relation(fields: [accountId], references: [id], onDelete: SetNull)
   appInstalls  AppInstall[]
   kvStore      KVStore[]  // 设备相关的KV存储
+  autoAuths    AutoAuth[] // 自动授权配置
 }
 
 model AppInstall {
   id               String   @id @default(cuid())
   deviceId         Int      // 关联的设备ID
   appId            String   // 应用ID (SHA256 hash)
-  token            String   @unique // 应用安装的唯一访问令牌，拥有完整KV读写权限
+  token            String   @unique // 应用安装的唯一访问令牌,拥有完整KV读写权限
   note             String?  // 安装备注
+  isReadOnly       Boolean  @default(false) // 是否只读
+  deviceType       String?  // 设备类型: teacher(教师), student(学生), classroom(班级一体机), parent(家长)
   installedAt      DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
   // 关联关系
   device      Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+}
+
+model AutoAuth {
+  id               String   @id @default(cuid())
+  deviceId         Int      // 关联的设备ID
+  password         String?  // 配置密码,可以为空
+  deviceType       String?  // 自动设备类型: teacher(教师), student(学生), classroom(班级一体机), parent(家长)
+  isReadOnly       Boolean  @default(false) // 是否只读
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // 关联关系
+  device      Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@unique([deviceId, password]) // 同一设备的密码必须唯一
 }

@@ -39,7 +39,7 @@ export const kvTokenAuth = async (req, res, next) => {
     res.locals.device = appInstall.device;
     res.locals.appInstall = appInstall;
     res.locals.deviceId = appInstall.device.id;
-
+    res.locals.token = token;
     next();
   } catch (error) {
     next(error);
@@ -54,6 +54,13 @@ export const kvTokenAuth = async (req, res, next) => {
  * 3. Body: token 或 apptoken
  */
 function extractToken(req) {
+  // 优先从 Authorization header 提取 Bearer token（支持大小写）
+  const authHeader = req.headers && (req.headers.authorization || req.headers.Authorization);
+  if (authHeader) {
+    const m = authHeader.match(/^Bearer\s+(.+)$/i);
+    if (m) return m[1];
+  }
+
   return (
     req.headers["x-app-token"] ||
     req.query.token ||
