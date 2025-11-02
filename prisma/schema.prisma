@@ -29,7 +29,10 @@ model Account {
   name             String?  // 用户名称
   avatarUrl        String?  // 用户头像URL
   providerData     Json?    // OAuth提供者返回的完整信息
-  accessToken      String?   @db.Text // 账户访问令牌
+  accessToken      String?  @db.Text // 账户访问令牌
+  refreshToken     String?  @db.Text // 刷新令牌
+  refreshTokenExpiry DateTime? // 刷新令牌过期时间
+  tokenVersion     Int      @default(1) // 令牌版本，用于令牌失效
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

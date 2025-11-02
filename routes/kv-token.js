@@ -3,6 +3,13 @@ const router = Router();
 import kvStore from "../utils/kvStore.js";
 import { broadcastKeyChanged } from "../utils/socket.js";
 import { kvTokenAuth } from "../middleware/kvTokenAuth.js";
+import {
+  tokenReadLimiter,
+  tokenWriteLimiter,
+  tokenDeleteLimiter,
+  tokenBatchLimiter,
+  prepareTokenForRateLimit
+} from "../middleware/rateLimiter.js";
 import errors from "../utils/errors.js";
 import { PrismaClient } from "@prisma/client";
 
@@ -11,12 +18,16 @@ const prisma = new PrismaClient();
 // 使用KV专用token认证
 router.use(kvTokenAuth);
 
+// 准备token用于限速器
+router.use(prepareTokenForRateLimit);
+
 /**
  * GET /_info
  * 获取当前token所属设备的信息，如果关联了账号也返回账号信息
  */
 router.get(
   "/_info",
+  tokenReadLimiter,
   errors.catchAsync(async (req, res) => {
     const deviceId = res.locals.deviceId;
 
@@ -62,6 +73,7 @@ router.get(
  */
 router.get(
   "/_token",
+  tokenReadLimiter,
   errors.catchAsync(async (req, res, next) => {
     const token = res.locals.token;
     const deviceId = res.locals.deviceId;
@@ -110,6 +122,7 @@ router.get(
  */
 router.get(
   "/_keys",
+  tokenReadLimiter,
   errors.catchAsync(async (req, res) => {
     const deviceId = res.locals.deviceId;
     const { sortBy, sortDir, limit, skip } = req.query;
@@ -160,6 +173,7 @@ router.get(
  */
 router.get(
   "/",
+  tokenReadLimiter,
   errors.catchAsync(async (req, res) => {
     const deviceId = res.locals.deviceId;
     const { sortBy, sortDir, limit, skip } = req.query;
@@ -205,6 +219,7 @@ router.get(
  */
 router.get(
   "/:key",
+  tokenReadLimiter,
   errors.catchAsync(async (req, res, next) => {
     const deviceId = res.locals.deviceId;
     const { key } = req.params;
@@ -227,6 +242,7 @@ router.get(
  */
 router.get(
   "/:key/metadata",
+  tokenReadLimiter,
   errors.catchAsync(async (req, res, next) => {
     const deviceId = res.locals.deviceId;
     const { key } = req.params;
@@ -247,6 +263,7 @@ router.get(
  */
 router.post(
   "/_batchimport",
+  tokenBatchLimiter,
   errors.catchAsync(async (req, res, next) => {
     // 检查token是否为只读
     if (res.locals.appInstall?.isReadOnly) {
@@ -320,6 +337,7 @@ router.post(
  */
 router.post(
   "/:key",
+  tokenWriteLimiter,
   errors.catchAsync(async (req, res, next) => {
     // 检查token是否为只读
     if (res.locals.appInstall?.isReadOnly) {
@@ -370,6 +388,7 @@ router.post(
  */
 router.delete(
   "/:key",
+  tokenDeleteLimiter,
   errors.catchAsync(async (req, res, next) => {
     // 检查token是否为只读
     if (res.locals.appInstall?.isReadOnly) {

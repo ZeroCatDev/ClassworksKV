@@ -30,53 +30,32 @@ export const getRateLimitKey = (req) => {
   return `ip:${getClientIp(req)}`;
 };
 
-// 配置全局限速中间件
-export const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15分钟
-  limit: 200, // 每个IP在windowMs时间内最多允许200个请求
-  standardHeaders: "draft-7", // 返回标准的RateLimit头信息
-  legacyHeaders: false, // 禁用X-RateLimit-*头
-  message: "请求过于频繁，请稍后再试",
-  keyGenerator: getClientIp, // 使用真实IP作为限速键
-  skipSuccessfulRequests: false, // 成功的请求也计入限制
-  skipFailedRequests: false, // 失败的请求也计入限制
-});
+// 纯基于Token的keyGenerator，用于KV Token专用路由
+// 这个函数假设token已经通过中间件设置在req对象上
+export const getTokenOnlyKey = (req) => {
+  // 尝试从多个位置获取token
+  const token =
+    req.locals?.token ||           // 如果token被设置在req.locals中
+    req.res?.locals?.token ||      // 如果token在res.locals中
+    extractToken(req);             // 从headers/query/body提取
 
-// API限速器
-export const apiLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1分钟
-  limit: 100, // 每个IP在windowMs时间内最多允许100个请求
-  standardHeaders: "draft-7",
-  legacyHeaders: false,
-  message: "API请求过于频繁，请稍后再试",
-  keyGenerator: getClientIp,
-  skipSuccessfulRequests: false,
-  skipFailedRequests: false,
-});
+  if (!token) {
+    // 如果没有token，返回一个特殊键用于统一限制
+    return "no-token";
+  }
+  return `token:${token}`;
+};
 
-// 写操作限速器（更严格）
-export const writeLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1分钟
-  limit: 20, // 每个IP在windowMs时间内最多允许20个写操作
-  standardHeaders: "draft-7",
-  legacyHeaders: false,
-  message: "写操作请求过于频繁，请稍后再试",
-  keyGenerator: getClientIp,
-  skipSuccessfulRequests: false,
-  skipFailedRequests: false,
-});
+// 创建一个中间件来将res.locals.token复制到req.locals.token，以便限速器使用
+export const prepareTokenForRateLimit = (req, res, next) => {
+  if (res.locals.token) {
+    req.locals = req.locals || {};
+    req.locals.token = res.locals.token;
+  }
+  next();
+};
 
-// 删除操作限速器（最严格）
-export const deleteLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 5分钟
-  limit: 10, // 每个IP在windowMs时间内最多允许10个删除操作
-  standardHeaders: "draft-7",
-  legacyHeaders: false,
-  message: "删除操作请求过于频繁，请稍后再试",
-  keyGenerator: getClientIp,
-  skipSuccessfulRequests: false,
-  skipFailedRequests: false,
-});
+
 
 // 认证相关路由限速器（防止暴力破解）
 export const authLimiter = rateLimit({
@@ -90,19 +69,7 @@ export const authLimiter = rateLimit({
   skipFailedRequests: false, // 失败的认证计入限制
 });
 
-// 批量操作限速器（比写操作更严格）
-export const batchLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 5分钟
-  limit: 10, // 每个IP在windowMs时间内最多允许10个批量操作
-  standardHeaders: "draft-7",
-  legacyHeaders: false,
-  message: "批量操作请求过于频繁，请稍后再试",
-  keyGenerator: getClientIp,
-  skipSuccessfulRequests: false,
-  skipFailedRequests: false,
-});
-
-// === Token 专用限速器（更宽松的限制） ===
+// === Token 专用限速器（更宽松的限制，纯基于Token） ===
 
 // Token 读操作限速器
 export const tokenReadLimiter = rateLimit({
@@ -111,7 +78,7 @@ export const tokenReadLimiter = rateLimit({
   standardHeaders: "draft-7",
   legacyHeaders: false,
   message: "读操作请求过于频繁，请稍后再试",
-  keyGenerator: getRateLimitKey,
+  keyGenerator: getTokenOnlyKey,
   skipSuccessfulRequests: false,
   skipFailedRequests: false,
 });
@@ -123,7 +90,7 @@ export const tokenWriteLimiter = rateLimit({
   standardHeaders: "draft-7",
   legacyHeaders: false,
   message: "写操作请求过于频繁，请稍后再试",
-  keyGenerator: getRateLimitKey,
+  keyGenerator: getTokenOnlyKey,
   skipSuccessfulRequests: false,
   skipFailedRequests: false,
 });
@@ -135,7 +102,7 @@ export const tokenDeleteLimiter = rateLimit({
   standardHeaders: "draft-7",
   legacyHeaders: false,
   message: "删除操作请求过于频繁，请稍后再试",
-  keyGenerator: getRateLimitKey,
+  keyGenerator: getTokenOnlyKey,
   skipSuccessfulRequests: false,
   skipFailedRequests: false,
 });
@@ -147,53 +114,7 @@ export const tokenBatchLimiter = rateLimit({
   standardHeaders: "draft-7",
   legacyHeaders: false,
   message: "批量操作请求过于频繁，请稍后再试",
-  keyGenerator: getRateLimitKey,
+  keyGenerator: getTokenOnlyKey,
   skipSuccessfulRequests: false,
   skipFailedRequests: false,
 });
-
-// 创建一个路由处理中间件，根据HTTP方法应用不同的限速器
-export const methodBasedRateLimiter = (req, res, next) => {
-  // 检查是否是批量导入路由
-  if (req.method === "POST" && req.path.endsWith("/batch-import")) {
-    return batchLimiter(req, res, next);
-  } else if (req.method === "GET") {
-    // 读操作使用普通API限速
-    return apiLimiter(req, res, next);
-  } else if (
-    req.method === "POST" ||
-    req.method === "PUT" ||
-    req.method === "PATCH"
-  ) {
-    // 写操作使用更严格的限速
-    return writeLimiter(req, res, next);
-  } else if (req.method === "DELETE") {
-    // 删除操作使用最严格的限速
-    return deleteLimiter(req, res, next);
-  }
-  // 其他方法使用API限速
-  return apiLimiter(req, res, next);
-};
-
-// Token 专用路由中间件：根据HTTP方法应用不同的Token限速器
-export const tokenBasedRateLimiter = (req, res, next) => {
-  // 检查是否是批量导入路由
-  if (req.method === "POST" && (req.path.endsWith("/_batchimport") || req.path.endsWith("/batch-import"))) {
-    return tokenBatchLimiter(req, res, next);
-  } else if (req.method === "GET") {
-    // 读操作使用Token读限速
-    return tokenReadLimiter(req, res, next);
-  } else if (
-    req.method === "POST" ||
-    req.method === "PUT" ||
-    req.method === "PATCH"
-  ) {
-    // 写操作使用Token写限速
-    return tokenWriteLimiter(req, res, next);
-  } else if (req.method === "DELETE") {
-    // 删除操作使用Token删除限速
-    return tokenDeleteLimiter(req, res, next);
-  }
-  // 其他方法使用Token读限速
-  return tokenReadLimiter(req, res, next);
-};

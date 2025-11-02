@@ -2,8 +2,9 @@ import { Router } from "express";
 import { PrismaClient } from "@prisma/client";
 import crypto from "crypto";
 import { oauthProviders, getCallbackURL, generateState } from "../config/oauth.js";
-import { generateAccountToken, verifyToken } from "../utils/jwt.js";
+import { generateAccountToken, generateTokenPair, refreshAccessToken, revokeAllTokens, revokeRefreshToken } from "../utils/jwt.js";
 import { jwtAuth } from "../middleware/jwt-auth.js";
+import errors from "../utils/errors.js";
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -331,13 +332,15 @@ router.get("/oauth/:provider/callback", async (req, res) => {
       });
     }
 
-    // 5. 生成JWT token
-    const jwtToken = generateAccountToken(account);
+    // 5. 生成令牌对（访问令牌 + 刷新令牌）
+    const tokens = await generateTokenPair(account);
 
     // 6. 重定向到前端根路径，携带JWT token
     const frontendBaseUrl = process.env.FRONTEND_URL || "http://localhost:5173";
     const callbackUrl = new URL(frontendBaseUrl);
-    callbackUrl.searchParams.append("token", jwtToken);
+    callbackUrl.searchParams.append("access_token", tokens.accessToken);
+    callbackUrl.searchParams.append("refresh_token", tokens.refreshToken);
+    callbackUrl.searchParams.append("expires_in", tokens.accessTokenExpiresIn);
     callbackUrl.searchParams.append("provider", provider);
     // 附带展示信息，便于前端显示品牌与名称
     const pconf = oauthProviders[provider] || {};
@@ -645,6 +648,138 @@ router.get("/device/:uuid/account", async (req, res, next) => {
         name: device.account.name,
         avatarUrl: device.account.avatarUrl,
         bindTime: device.updatedAt, // 绑定时间
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * 刷新访问令牌
+ * POST /api/accounts/refresh
+ *
+ * Body:
+ * {
+ *   refresh_token: string  // 刷新令牌
+ * }
+ */
+router.post("/refresh", async (req, res, next) => {
+  try {
+    const { refresh_token } = req.body;
+
+    if (!refresh_token) {
+      return res.status(400).json({
+        success: false,
+        message: "缺少刷新令牌",
+      });
+    }
+
+    // 刷新访问令牌
+    const result = await refreshAccessToken(refresh_token);
+
+    res.json({
+      success: true,
+      message: "令牌刷新成功",
+      data: {
+        access_token: result.accessToken,
+        expires_in: result.accessTokenExpiresIn,
+        account: result.account,
+      },
+    });
+  } catch (error) {
+    if (error.message === 'Account not found') {
+      return next(errors.createError(401, "账户不存在"));
+    }
+    if (error.message === 'Invalid refresh token') {
+      return next(errors.createError(401, "无效的刷新令牌"));
+    }
+    if (error.message === 'Refresh token expired') {
+      return next(errors.createError(401, "刷新令牌已过期"));
+    }
+    if (error.message === 'Token version mismatch') {
+      return next(errors.createError(401, "令牌版本不匹配，请重新登录"));
+    }
+
+    next(error);
+  }
+});
+
+/**
+ * 登出（撤销当前设备的刷新令牌）
+ * POST /api/accounts/logout
+ *
+ * Headers:
+ * Authorization: Bearer <JWT Token>
+ */
+router.post("/logout", jwtAuth, async (req, res, next) => {
+  try {
+    const accountContext = res.locals.account;
+
+    // 撤销当前设备的刷新令牌
+    await revokeRefreshToken(accountContext.id);
+
+    res.json({
+      success: true,
+      message: "登出成功",
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * 登出所有设备（撤销所有令牌）
+ * POST /api/accounts/logout-all
+ *
+ * Headers:
+ * Authorization: Bearer <JWT Token>
+ */
+router.post("/logout-all", jwtAuth, async (req, res, next) => {
+  try {
+    const accountContext = res.locals.account;
+
+    // 撤销所有令牌
+    await revokeAllTokens(accountContext.id);
+
+    res.json({
+      success: true,
+      message: "已从所有设备登出",
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * 获取令牌信息
+ * GET /api/accounts/token-info
+ *
+ * Headers:
+ * Authorization: Bearer <JWT Token>
+ */
+router.get("/token-info", jwtAuth, async (req, res, next) => {
+  try {
+    const decoded = res.locals.tokenDecoded;
+    const account = res.locals.account;
+
+    // 计算token剩余有效时间
+    const now = Math.floor(Date.now() / 1000);
+    const expiresIn = decoded.exp - now;
+
+    res.json({
+      success: true,
+      data: {
+        accountId: account.id,
+        tokenType: decoded.type || 'legacy',
+        tokenVersion: decoded.tokenVersion || account.tokenVersion,
+        issuedAt: new Date(decoded.iat * 1000),
+        expiresAt: new Date(decoded.exp * 1000),
+        expiresIn: expiresIn,
+        isExpired: expiresIn <= 0,
+        isLegacyToken: res.locals.isLegacyToken || false,
+        hasRefreshToken: !!account.refreshToken,
+        refreshTokenExpiry: account.refreshTokenExpiry,
       },
     });
   } catch (error) {

@@ -1,4 +1,12 @@
 import jwt from 'jsonwebtoken';
+import {
+  generateAccessToken,
+  verifyAccessToken,
+  generateTokenPair,
+  refreshAccessToken,
+  revokeAllTokens,
+  revokeRefreshToken,
+} from './tokenManager.js';
 
 // JWT 配置（支持 HS256 与 RS256）
 const JWT_ALG = (process.env.JWT_ALG || 'HS256').toUpperCase();
@@ -23,7 +31,8 @@ function getSignVerifyKeys() {
 }
 
 /**
- * 签发JWT token
+ * 签发JWT token（向后兼容）
+ * @deprecated 建议使用 generateAccessToken
  */
 export function signToken(payload) {
   const { signKey } = getSignVerifyKeys();
@@ -34,7 +43,8 @@ export function signToken(payload) {
 }
 
 /**
- * 验证JWT token
+ * 验证JWT token（向后兼容）
+ * @deprecated 建议使用 verifyAccessToken
  */
 export function verifyToken(token) {
   const { verifyKey } = getSignVerifyKeys();
@@ -42,7 +52,8 @@ export function verifyToken(token) {
 }
 
 /**
- * 为账户生成JWT token
+ * 为账户生成JWT token（向后兼容）
+ * @deprecated 建议使用 generateTokenPair 获取完整的令牌对
  */
 export function generateAccountToken(account) {
   return signToken({
@@ -53,3 +64,13 @@ export function generateAccountToken(account) {
     avatarUrl: account.avatarUrl,
   });
 }
+
+// 重新导出新的token管理功能
+export {
+  generateAccessToken,
+  verifyAccessToken,
+  generateTokenPair,
+  refreshAccessToken,
+  revokeAllTokens,
+  revokeRefreshToken,
+};

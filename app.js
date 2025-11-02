@@ -8,12 +8,6 @@ import logger from "morgan";
 import bodyParser from "body-parser";
 import errorHandler from "./middleware/errorHandler.js";
 import errors from "./utils/errors.js";
-import {
-  globalLimiter,
-  apiLimiter,
-  methodBasedRateLimiter,
-  tokenBasedRateLimiter,
-} from "./middleware/rateLimiter.js";
 
 import kvRouter from "./routes/kv-token.js";
 import appsRouter from "./routes/apps.js";
@@ -37,9 +31,6 @@ app.disable("x-powered-by");
 // 获取当前文件的目录路径
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-
-// 应用全局限速
-app.use(globalLimiter);
 
 // view engine setup
 app.set("views", join(__dirname, "views"));
@@ -77,31 +68,31 @@ app.use((req, res, next) => {
 app.get("/", (req, res) => {
   res.render("index.ejs");
 });
-app.get("/check", apiLimiter, (req, res) => {
+app.get("/check", (req, res) => {
   res.json({
     status: "success",
-    message: "API is running",
+    message: "Classworks KV is running",
     time: new Date().getTime(),
   });
 });
 
 // Mount the Apps router with API rate limiting
-app.use("/apps", apiLimiter, appsRouter);
+app.use("/apps", appsRouter);
 
 // Mount the Auto Auth router with API rate limiting
-app.use("/auto-auth", apiLimiter, autoAuthRouter);
+app.use("/auto-auth", autoAuthRouter);
 
 // Mount the Device router with API rate limiting
-app.use("/devices", apiLimiter, deviceRouter);
+app.use("/devices", deviceRouter);
 
-// Mount the KV store router with token-based rate limiting (更宽松的限速)
-app.use("/kv", tokenBasedRateLimiter, kvRouter);
+// Mount the KV store router
+app.use("/kv", kvRouter);
 
 // Mount the Device Authorization router with API rate limiting
-app.use("/auth", apiLimiter, deviceAuthRouter);
+app.use("/auth", deviceAuthRouter);
 
 // Mount the Accounts router with API rate limiting
-app.use("/accounts", apiLimiter, accountsRouter);
+app.use("/accounts", accountsRouter);
 
 // 兜底404路由 - 处理所有未匹配的路由
 app.use((req, res, next) => {
