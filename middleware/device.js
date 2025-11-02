@@ -14,6 +14,27 @@ import { verifyDevicePassword } from "../utils/crypto.js";
 const prisma = new PrismaClient();
 
 /**
+ * 为新设备创建默认的自动登录配置
+ * @param {number} deviceId - 设备ID
+ */
+async function createDefaultAutoAuth(deviceId) {
+  try {
+    // 创建默认的自动授权配置：不需要密码、类型是classroom（一体机）
+    await prisma.autoAuth.create({
+      data: {
+        deviceId: deviceId,
+        password: null, // 无密码
+        deviceType: "classroom", // 一体机类型
+        isReadOnly: false, // 非只读
+      },
+    });
+  } catch (error) {
+    console.error('创建默认自动登录配置失败:', error);
+    // 这里不抛出错误，避免影响设备创建流程
+  }
+}
+
+/**
  * 设备中间件 - 统一处理设备UUID
  *
  * 从req.params.deviceUuid或req.body.deviceUuid获取UUID
@@ -47,6 +68,9 @@ export const deviceMiddleware = errors.catchAsync(async (req, res, next) => {
         accountId: null,
       },
     });
+
+    // 为新创建的设备添加默认的自动登录配置
+    await createDefaultAutoAuth(device.id);
   }
 
   // 将设备信息存储到res.locals
