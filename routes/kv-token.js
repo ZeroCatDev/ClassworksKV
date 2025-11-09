@@ -28,7 +28,7 @@ router.use(prepareTokenForRateLimit);
 router.get(
   "/_info",
   tokenReadLimiter,
-  errors.catchAsync(async (req, res) => {
+  errors.catchAsync(async (req, res, next) => {
     const deviceId = res.locals.deviceId;
 
     // 获取设备信息，包含关联的账号
@@ -43,16 +43,23 @@ router.get(
       return next(errors.createError(404, "设备不存在"));
     }
 
-    // 构建响应对象
+    // 构建响应对象：当设备没有关联账号时返回 uuid；若已关联账号则不返回 uuid
     const response = {
       device: {
         id: device.id,
-        uuid: device.uuid,
         name: device.name,
         createdAt: device.createdAt,
         updatedAt: device.updatedAt,
       },
     };
+
+    // 仅当设备未绑定账号时，包含 uuid 字段
+    if (!device.account) {
+      response.device.uuid = device.uuid;
+    }
+
+    // 标识是否已绑定账号
+    response.hasAccount = !!device.account;
 
     // 如果关联了账号，添加账号信息
     if (device.account) {
