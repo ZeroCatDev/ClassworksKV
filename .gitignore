@@ -145,3 +145,4 @@ dist
 
 prisma/database/data
 data/
+package-lock.json
