@@ -173,192 +173,61 @@ router.put(
 
 /**
  * POST /devices/:uuid/password
+ * @deprecated 此端点已弃用，请使用 AutoAuth 自动授权功能
  * 初次设置设备密码 (无需认证，仅当设备未设置密码时)
  */
 router.post(
   "/:uuid/password",
   errors.catchAsync(async (req, res, next) => {
-    const { uuid } = req.params;
-    const newPassword = req.query.newPassword || req.body.newPassword;
-
-    if (!newPassword) {
-      return next(errors.createError(400, "新密码是必需的"));
-    }
-
-    // 查找设备
-    const device = await prisma.device.findUnique({
-      where: { uuid },
-    });
-
-    if (!device) {
-      return next(errors.createError(404, "设备不存在"));
-    }
-
-    // 只有在设备未设置密码时才允许无认证设置
-    if (device.password) {
-      return next(errors.createError(403, "设备已设置密码，请使用修改密码接口"));
-    }
-
-    const hashedPassword = await hashPassword(newPassword);
-
-    await prisma.device.update({
-      where: { id: device.id },
-      data: {
-        password: hashedPassword,
-      },
-    });
-
-    return res.json({
-      success: true,
-      message: "密码设置成功",
-    });
+    return next(errors.createError(410, "此功能已弃用，请使用 AutoAuth 自动授权功能代替设备密码"));
   })
 );
 
 /**
  * PUT /devices/:uuid/password
+ * @deprecated 此端点已弃用，请使用 AutoAuth 自动授权功能
  * 修改设备密码 (需要UUID认证和当前密码验证，账户拥有者除外)
  */
 router.put(
   "/:uuid/password",
-  uuidAuth,
   errors.catchAsync(async (req, res, next) => {
-    const currentPassword = req.query.currentPassword;
-    const newPassword = req.query.newPassword || req.body.newPassword;
-    const passwordHint = req.query.passwordHint || req.body.passwordHint;
-    const device = res.locals.device;
-    const isAccountOwner = res.locals.isAccountOwner;
-
-    if (!newPassword) {
-      return next(errors.createError(400, "新密码是必需的"));
-    }
-
-    // 如果是账户拥有者，无需验证当前密码
-    if (!isAccountOwner) {
-      if (!device.password) {
-        return next(errors.createError(400, "设备未设置密码，请使用设置密码接口"));
-      }
-
-      if (!currentPassword) {
-        return next(errors.createError(400, "当前密码是必需的"));
-      }
-
-      // 验证当前密码
-      const isCurrentPasswordValid = await verifyDevicePassword(currentPassword, device.password);
-      if (!isCurrentPasswordValid) {
-        return next(errors.createError(401, "当前密码错误"));
-      }
-    }
-
-    const hashedNewPassword = await hashPassword(newPassword);
-
-    await prisma.device.update({
-      where: { id: device.id },
-      data: {
-        password: hashedNewPassword,
-        passwordHint: passwordHint !== undefined ? passwordHint : device.passwordHint,
-      },
-    });
-
-    return res.json({
-      success: true,
-      message: "密码修改成功",
-    });
+    return next(errors.createError(410, "此功能已弃用，请使用 AutoAuth 自动授权功能代替设备密码"));
   })
 );
 
 /**
  * PUT /devices/:uuid/password-hint
+ * @deprecated 此端点已弃用，请使用 AutoAuth 自动授权功能
  * 设置密码提示 (需要UUID认证)
  */
 router.put(
   "/:uuid/password-hint",
-  uuidAuth,
   errors.catchAsync(async (req, res, next) => {
-    const { passwordHint } = req.body;
-    const device = res.locals.device;
-
-    await prisma.device.update({
-      where: { id: device.id },
-      data: { passwordHint: passwordHint || null },
-    });
-
-    return res.json({
-      success: true,
-      message: "密码提示设置成功",
-      passwordHint: passwordHint || null,
-    });
+    return next(errors.createError(410, "此功能已弃用，请使用 AutoAuth 自动授权功能代替设备密码"));
   })
 );
 
 /**
  * GET /devices/:uuid/password-hint
+ * @deprecated 此端点已弃用，请使用 AutoAuth 自动授权功能
  * 获取设备密码提示 (无需认证)
  */
 router.get(
   "/:uuid/password-hint",
   errors.catchAsync(async (req, res, next) => {
-    const { uuid } = req.params;
-
-    const device = await prisma.device.findUnique({
-      where: { uuid },
-      select: {
-        passwordHint: true,
-      },
-    });
-
-    if (!device) {
-      return next(errors.createError(404, "设备不存在"));
-    }
-
-    return res.json({
-      success: true,
-      passwordHint: device.passwordHint || null,
-    });
+    return next(errors.createError(410, "此功能已弃用，请使用 AutoAuth 自动授权功能代替设备密码"));
   })
 );
 
 /**
  * DELETE /devices/:uuid/password
+ * @deprecated 此端点已弃用，请使用 AutoAuth 自动授权功能
  * 删除设备密码 (需要UUID认证和密码验证，账户拥有者除外)
  */
 router.delete(
   "/:uuid/password",
-  uuidAuth,
   errors.catchAsync(async (req, res, next) => {
-    const password = req.query.password;
-    const device = res.locals.device;
-    const isAccountOwner = res.locals.isAccountOwner;
-
-    if (!device.password) {
-      return next(errors.createError(400, "设备未设置密码"));
-    }
-
-    // 如果不是账户拥有者，需要验证密码
-    if (!isAccountOwner) {
-      if (!password) {
-        return next(errors.createError(400, "密码是必需的"));
-      }
-
-      // 验证密码
-      const isPasswordValid = await verifyDevicePassword(password, device.password);
-      if (!isPasswordValid) {
-        return next(errors.createError(401, "密码错误"));
-      }
-    }
-
-    await prisma.device.update({
-      where: { id: device.id },
-      data: {
-        password: null,
-        passwordHint: null,
-      },
-    });
-
-    return res.json({
-      success: true,
-      message: "密码删除成功",
-    });
+    return next(errors.createError(410, "此功能已弃用，请使用 AutoAuth 自动授权功能代替设备密码"));
   })
 );
 
