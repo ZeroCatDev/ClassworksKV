@@ -287,8 +287,8 @@ router.post(
     }
 
     // 验证 token 类型是否为 student
-    if (appInstall.deviceType !== 'student') {
-      return next(errors.createError(403, "只有学生类型的 token 可以设置名称"));
+    if (!['student','parent'].includes(appInstall.deviceType)) {
+      return next(errors.createError(403, "只有学生和家长类型的 token 可以设置名称"));
     }
 
     // 读取设备的 classworks-list-main 键值
@@ -326,7 +326,7 @@ router.post(
     // 更新 AppInstall 的 note 字段
     const updatedInstall = await prisma.appInstall.update({
       where: { id: appInstall.id },
-      data: { note: name },
+      data: { note: appInstall.deviceType === 'parent' ? `${name} 家长` : name },
     });
 
     return res.json({

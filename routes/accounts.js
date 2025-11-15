@@ -584,6 +584,7 @@ router.get("/devices", jwtAuth, async (req, res, next) => {
             id: true,
             uuid: true,
             name: true,
+            namespace: true,
             createdAt: true,
             updatedAt: true,
           },
