@@ -6,6 +6,7 @@ import crypto from "crypto";
 import errors from "../utils/errors.js";
 import { hashPassword, verifyDevicePassword } from "../utils/crypto.js";
 import { getOnlineDevices } from "../utils/socket.js";
+import { registeredDevicesTotal } from "../utils/metrics.js";
 
 const prisma = new PrismaClient();
 
@@ -47,49 +48,57 @@ router.post(
       return next(errors.createError(400, "设备名称是必需的"));
     }
 
-    // 检查UUID是否已存在
-    const existingDevice = await prisma.device.findUnique({
-      where: { uuid },
-    });
+    try {
+      // 检查UUID是否已存在
+      const existingDevice = await prisma.device.findUnique({
+        where: { uuid },
+      });
 
-    if (existingDevice) {
-      return next(errors.createError(409, "设备UUID已存在"));
+      if (existingDevice) {
+        return next(errors.createError(409, "设备UUID已存在"));
+      }
+
+      // 处理 namespace：如果没有提供，则使用 uuid
+      const deviceNamespace = namespace && namespace.trim() ? namespace.trim() : uuid;
+
+      // 检查 namespace 是否已被使用
+      const existingNamespace = await prisma.device.findUnique({
+        where: { namespace: deviceNamespace },
+      });
+
+      if (existingNamespace) {
+        return next(errors.createError(409, "该 namespace 已被使用"));
+      }
+
+      // 创建设备
+      const device = await prisma.device.create({
+        data: {
+          uuid,
+          name: deviceName,
+          namespace: deviceNamespace,
+        },
+      });
+
+      // 为新设备创建默认的自动登录配置
+      await createDefaultAutoAuth(device.id);
+
+      // 更新注册设备总数指标
+      const totalDevices = await prisma.device.count();
+      registeredDevicesTotal.set(totalDevices);
+
+      return res.status(201).json({
+        success: true,
+        device: {
+          id: device.id,
+          uuid: device.uuid,
+          name: device.name,
+          namespace: device.namespace,
+          createdAt: device.createdAt,
+        },
+      });
+    } catch (error) {
+      throw error;
     }
-
-    // 处理 namespace：如果没有提供，则使用 uuid
-    const deviceNamespace = namespace && namespace.trim() ? namespace.trim() : uuid;
-
-    // 检查 namespace 是否已被使用
-    const existingNamespace = await prisma.device.findUnique({
-      where: { namespace: deviceNamespace },
-    });
-
-    if (existingNamespace) {
-      return next(errors.createError(409, "该 namespace 已被使用"));
-    }
-
-    // 创建设备
-    const device = await prisma.device.create({
-      data: {
-        uuid,
-        name: deviceName,
-        namespace: deviceNamespace,
-      },
-    });
-
-    // 为新设备创建默认的自动登录配置
-    await createDefaultAutoAuth(device.id);
-
-    return res.status(201).json({
-      success: true,
-      device: {
-        id: device.id,
-        uuid: device.uuid,
-        name: device.name,
-        namespace: device.namespace,
-        createdAt: device.createdAt,
-      },
-    });
   })
 );
 
@@ -347,18 +356,22 @@ router.delete(
       }
     }
 
-    await prisma.device.update({
-      where: { id: device.id },
-      data: {
-        password: null,
-        passwordHint: null,
-      },
-    });
+    try {
+      await prisma.device.update({
+        where: { id: device.id },
+        data: {
+          password: null,
+          passwordHint: null,
+        },
+      });
 
-    return res.json({
-      success: true,
-      message: "密码删除成功",
-    });
+      return res.json({
+        success: true,
+        message: "密码删除成功",
+      });
+    } catch (error) {
+      throw error;
+    }
   })
 );
 

@@ -15,6 +15,7 @@ import deviceRouter from "./routes/device.js";
 import deviceAuthRouter from "./routes/device-auth.js";
 import accountsRouter from "./routes/accounts.js";
 import autoAuthRouter from "./routes/auto-auth.js";
+import { register } from "./utils/metrics.js";
 
 var app = express();
 
@@ -74,6 +75,28 @@ app.get("/check", (req, res) => {
     message: "Classworks KV is running",
     time: new Date().getTime(),
   });
+});
+
+// Prometheus metrics endpoint with token auth
+app.get("/metrics", async (req, res) => {
+  try {
+    // 检查 token 验证
+    const metricsToken = process.env.METRICS_TOKEN;
+    if (metricsToken) {
+      const providedToken = req.headers.authorization?.replace('Bearer ', '') || req.query.token;
+      if (!providedToken || providedToken !== metricsToken) {
+        return res.status(401).json({
+          error: "Unauthorized",
+          message: "Valid metrics token required"
+        });
+      }
+    }
+
+    res.set("Content-Type", register.contentType);
+    res.end(await register.metrics());
+  } catch (err) {
+    res.status(500).end(err.message);
+  }
 });
 
 // Mount the Apps router with API rate limiting

@@ -7,6 +7,7 @@
 import app from '../app.js';
 import { createServer } from 'http';
 import { initSocket } from '../utils/socket.js';
+import { initializeMetrics } from '../utils/metrics.js';
 
 /**
  * Get port from environment and store in Express.
@@ -23,6 +24,9 @@ var server = createServer(app);
 
 // 初始化 Socket.IO 并绑定到 HTTP Server
 initSocket(server);
+
+// 初始化 Prometheus 指标
+initializeMetrics();
 
 /**
  * Listen on provided port, on all network interfaces.

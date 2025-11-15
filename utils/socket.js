@@ -11,12 +11,15 @@
 
 import { Server } from "socket.io";
 import { PrismaClient } from "@prisma/client";
+import { onlineDevicesGauge } from "./metrics.js";
 
 // Socket.IO 单例实例
 let io = null;
 
 // 在线设备映射：uuid -> Set<socketId>
 const onlineMap = new Map();
+// 在线 token 映射：token -> Set<socketId> (用于指标统计)
+const onlineTokens = new Map();
 const prisma = new PrismaClient();
 
 /**
@@ -64,7 +67,12 @@ export function initSocket(server) {
           include: { device: { select: { uuid: true } } },
         });
         const uuid = appInstall?.device?.uuid;
-        if (uuid) leaveDeviceRoom(socket, uuid);
+        if (uuid) {
+          leaveDeviceRoom(socket, uuid);
+          // 移除 token 连接跟踪
+          removeTokenConnection(token, socket.id);
+          if (socket.data.tokens) socket.data.tokens.delete(token);
+        }
       } catch {
         // ignore
       }
@@ -105,6 +113,10 @@ export function initSocket(server) {
     socket.on("disconnect", () => {
       const uuids = Array.from(socket.data.deviceUuids || []);
       uuids.forEach((u) => removeOnline(u, socket.id));
+
+      // 清理 token 连接跟踪
+      const tokens = Array.from(socket.data.tokens || []);
+      tokens.forEach((token) => removeTokenConnection(token, socket.id));
     });
   });
 
@@ -134,6 +146,24 @@ function joinDeviceRoom(socket, uuid) {
 }
 
 /**
+ * 跟踪 token 连接用于指标统计
+ * @param {import('socket.io').Socket} socket
+ * @param {string} token
+ */
+function trackTokenConnection(socket, token) {
+  if (!socket.data.tokens) socket.data.tokens = new Set();
+  socket.data.tokens.add(token);
+
+  // 记录 token 连接
+  const set = onlineTokens.get(token) || new Set();
+  set.add(socket.id);
+  onlineTokens.set(token, set);
+
+  // 更新在线设备数指标（基于不同的 token 数量）
+  onlineDevicesGauge.set(onlineTokens.size);
+}
+
+/**
  * 让 socket 离开设备房间并更新在线表
  * @param {import('socket.io').Socket} socket
  * @param {string} uuid
@@ -156,6 +186,24 @@ function removeOnline(uuid, socketId) {
 }
 
 /**
+ * 移除 token 连接跟踪
+ * @param {string} token
+ * @param {string} socketId
+ */
+function removeTokenConnection(token, socketId) {
+  const set = onlineTokens.get(token);
+  if (!set) return;
+  set.delete(socketId);
+  if (set.size === 0) {
+    onlineTokens.delete(token);
+  } else {
+    onlineTokens.set(token, set);
+  }
+  // 更新在线设备数指标（基于不同的 token 数量）
+  onlineDevicesGauge.set(onlineTokens.size);
+}
+
+/**
  * 广播某设备下 KV 键已变更
  * @param {string} uuid 设备 uuid
  * @param {object} payload { key, action: 'upsert'|'delete'|'batch', updatedAt?, created? }
@@ -167,12 +215,12 @@ export function broadcastKeyChanged(uuid, payload) {
 
 /**
  * 获取在线设备列表
- * @returns {Array<{uuid:string, connections:number}>}
+ * @returns {Array<{token:string, connections:number}>}
  */
 export function getOnlineDevices() {
   const list = [];
-  for (const [uuid, set] of onlineMap.entries()) {
-    list.push({ uuid, connections: set.size });
+  for (const [token, set] of onlineTokens.entries()) {
+    list.push({ token, connections: set.size });
   }
   // 默认按连接数降序
   return list.sort((a, b) => b.connections - a.connections);
@@ -198,8 +246,10 @@ async function joinByToken(socket, token) {
   const uuid = appInstall?.device?.uuid;
   if (uuid) {
     joinDeviceRoom(socket, uuid);
+    // 跟踪 token 连接用于指标统计
+    trackTokenConnection(socket, token);
     // 可选：回执
-    socket.emit("joined", { by: "token", uuid });
+    socket.emit("joined", { by: "token", uuid, token });
   } else {
     socket.emit("join-error", { by: "token", reason: "invalid_token" });
   }

@@ -1,4 +1,6 @@
 import { PrismaClient } from "@prisma/client";
+import { keysTotal } from "./metrics.js";
+
 const prisma = new PrismaClient();
 class KVStore {
   /**
@@ -84,6 +86,10 @@ class KVStore {
       },
     });
 
+    // 更新键总数指标
+    const totalKeys = await prisma.kVStore.count();
+    keysTotal.set(totalKeys);
+
     // 返回带有设备ID和原始键的结果
     return {
       deviceId,
@@ -111,10 +117,17 @@ class KVStore {
           },
         },
       });
+
+      // 更新键总数指标
+      const totalKeys = await prisma.kVStore.count();
+      keysTotal.set(totalKeys);
+
       return item ? { ...item, deviceId, key } : null;
     } catch (error) {
       // 忽略记录不存在的错误
-      if (error.code === "P2025") return null;
+      if (error.code === "P2025") {
+        return null;
+      }
       throw error;
     }
   }
