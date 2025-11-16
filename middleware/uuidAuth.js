@@ -93,7 +93,22 @@ export const uuidAuth = async (req, res, next) => {
     next(error);
   }
 };
+export const extractDeviceInfo = async (req,res,next) => {
+  var uuid= extractUuid(req);
 
+  if (!uuid) {
+    throw errors.createError(400, "需要提供设备UUID");
+  }
+  const device = await prisma.device.findUnique({
+    where: { uuid },
+  });
+  if (!device) {
+    throw errors.createError(404, "设备不存在");
+  }
+  res.locals.device = device;
+  res.locals.deviceId = device.id;
+  next();
+}
 /**
  * 从请求中提取UUID
  */
