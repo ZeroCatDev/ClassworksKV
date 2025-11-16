@@ -7,9 +7,9 @@
  * 3. passwordMiddleware - 验证设备密码
  */
 
-import { PrismaClient } from "@prisma/client";
+import {PrismaClient} from "@prisma/client";
 import errors from "../utils/errors.js";
-import { verifyDevicePassword } from "../utils/crypto.js";
+import {verifyDevicePassword} from "../utils/crypto.js";
 
 const prisma = new PrismaClient();
 
@@ -18,20 +18,20 @@ const prisma = new PrismaClient();
  * @param {number} deviceId - 设备ID
  */
 async function createDefaultAutoAuth(deviceId) {
-  try {
-    // 创建默认的自动授权配置：不需要密码、类型是classroom（一体机）
-    await prisma.autoAuth.create({
-      data: {
-        deviceId: deviceId,
-        password: null, // 无密码
-        deviceType: "classroom", // 一体机类型
-        isReadOnly: false, // 非只读
-      },
-    });
-  } catch (error) {
-    console.error('创建默认自动登录配置失败:', error);
-    // 这里不抛出错误，避免影响设备创建流程
-  }
+    try {
+        // 创建默认的自动授权配置：不需要密码、类型是classroom（一体机）
+        await prisma.autoAuth.create({
+            data: {
+                deviceId: deviceId,
+                password: null, // 无密码
+                deviceType: "classroom", // 一体机类型
+                isReadOnly: false, // 非只读
+            },
+        });
+    } catch (error) {
+        console.error('创建默认自动登录配置失败:', error);
+        // 这里不抛出错误，避免影响设备创建流程
+    }
 }
 
 /**
@@ -46,36 +46,36 @@ async function createDefaultAutoAuth(deviceId) {
  * router.get('/path/:deviceUuid', deviceMiddleware, handler)
  */
 export const deviceMiddleware = errors.catchAsync(async (req, res, next) => {
-  const deviceUuid = req.params.deviceUuid || req.body.deviceUuid;
+    const deviceUuid = req.params.deviceUuid || req.body.deviceUuid;
 
-  if (!deviceUuid) {
-    return next(errors.createError(400, "缺少设备UUID"));
-  }
+    if (!deviceUuid) {
+        return next(errors.createError(400, "缺少设备UUID"));
+    }
 
-  // 查找或创建设备
-  let device = await prisma.device.findUnique({
-    where: { uuid: deviceUuid },
-  });
-
-  if (!device) {
-    // 设备不存在，自动创建
-    device = await prisma.device.create({
-      data: {
-        uuid: deviceUuid,
-        name: null,
-        password: null,
-        passwordHint: null,
-        accountId: null,
-      },
+    // 查找或创建设备
+    let device = await prisma.device.findUnique({
+        where: {uuid: deviceUuid},
     });
 
-    // 为新创建的设备添加默认的自动登录配置
-    await createDefaultAutoAuth(device.id);
-  }
+    if (!device) {
+        // 设备不存在，自动创建
+        device = await prisma.device.create({
+            data: {
+                uuid: deviceUuid,
+                name: null,
+                password: null,
+                passwordHint: null,
+                accountId: null,
+            },
+        });
 
-  // 将设备信息存储到res.locals
-  res.locals.device = device;
-  next();
+        // 为新创建的设备添加默认的自动登录配置
+        await createDefaultAutoAuth(device.id);
+    }
+
+    // 将设备信息存储到res.locals
+    res.locals.device = device;
+    next();
 });
 
 /**
@@ -89,24 +89,24 @@ export const deviceMiddleware = errors.catchAsync(async (req, res, next) => {
  * router.get('/path/:deviceUuid', deviceInfoMiddleware, handler)
  */
 export const deviceInfoMiddleware = errors.catchAsync(async (req, res, next) => {
-  const deviceUuid = req.params.deviceUuid ;
+    const deviceUuid = req.params.deviceUuid;
 
-  if (!deviceUuid) {
-    return next(errors.createError(400, "缺少设备UUID"));
-  }
+    if (!deviceUuid) {
+        return next(errors.createError(400, "缺少设备UUID"));
+    }
 
-  // 查找设备
-  const device = await prisma.device.findUnique({
-    where: { uuid: deviceUuid },
-  });
+    // 查找设备
+    const device = await prisma.device.findUnique({
+        where: {uuid: deviceUuid},
+    });
 
-  if (!device) {
-    return next(errors.createError(404, "设备不存在"));
-  }
+    if (!device) {
+        return next(errors.createError(404, "设备不存在"));
+    }
 
-  // 将设备信息存储到res.locals
-  res.locals.device = device;
-  next();
+    // 将设备信息存储到res.locals
+    res.locals.device = device;
+    next();
 });
 
 /**
@@ -122,29 +122,29 @@ export const deviceInfoMiddleware = errors.catchAsync(async (req, res, next) => 
  * router.post('/path', deviceMiddleware, passwordMiddleware, handler)
  */
 export const passwordMiddleware = errors.catchAsync(async (req, res, next) => {
-  const device = res.locals.device;
-  const { password } = req.body;
+    const device = res.locals.device;
+    const {password} = req.body;
 
-  if (!device) {
-    return next(errors.createError(500, "设备信息未加载，请先使用deviceMiddleware"));
-  }
-
-  // 如果设备绑定了账户，且请求中有账户信息且匹配，则跳过密码验证
-  if (device.accountId && req.account && req.account.id === device.accountId) {
-    return next();
-  }
-
-  // 如果设备有密码，验证密码
-  if (device.password) {
-    if (!password) {
-      return next(errors.createError(401, "设备需要密码"));
+    if (!device) {
+        return next(errors.createError(500, "设备信息未加载，请先使用deviceMiddleware"));
     }
 
-    const isValid = await verifyDevicePassword(password, device.password);
-    if (!isValid) {
-      return next(errors.createError(401, "密码错误"));
+    // 如果设备绑定了账户，且请求中有账户信息且匹配，则跳过密码验证
+    if (device.accountId && req.account && req.account.id === device.accountId) {
+        return next();
     }
-  }
 
-  next();
+    // 如果设备有密码，验证密码
+    if (device.password) {
+        if (!password) {
+            return next(errors.createError(401, "设备需要密码"));
+        }
+
+        const isValid = await verifyDevicePassword(password, device.password);
+        if (!isValid) {
+            return next(errors.createError(401, "密码错误"));
+        }
+    }
+
+    next();
 });

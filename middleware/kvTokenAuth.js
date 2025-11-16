@@ -5,7 +5,7 @@
  * 适用于所有KV相关的接口
  */
 
-import { PrismaClient } from "@prisma/client";
+import {PrismaClient} from "@prisma/client";
 import errors from "../utils/errors.js";
 
 const prisma = new PrismaClient();
@@ -15,35 +15,35 @@ const prisma = new PrismaClient();
  * 从请求中提取token（支持多种方式），验证后将设备和应用信息注入到res.locals
  */
 export const kvTokenAuth = async (req, res, next) => {
-  try {
-    // 从多种途径获取token
-    const token = extractToken(req);
+    try {
+        // 从多种途径获取token
+        const token = extractToken(req);
 
-    if (!token) {
-      return next(errors.createError(401, "需要提供有效的token"));
+        if (!token) {
+            return next(errors.createError(401, "需要提供有效的token"));
+        }
+
+        // 查找token对应的应用安装信息
+        const appInstall = await prisma.appInstall.findUnique({
+            where: {token},
+            include: {
+                device: true,
+            },
+        });
+
+        if (!appInstall) {
+            return next(errors.createError(401, "无效的token"));
+        }
+
+        // 将信息存储到res.locals供后续使用
+        res.locals.device = appInstall.device;
+        res.locals.appInstall = appInstall;
+        res.locals.deviceId = appInstall.device.id;
+        res.locals.token = token;
+        next();
+    } catch (error) {
+        next(error);
     }
-
-    // 查找token对应的应用安装信息
-    const appInstall = await prisma.appInstall.findUnique({
-      where: { token },
-      include: {
-        device: true,
-      },
-    });
-
-    if (!appInstall) {
-      return next(errors.createError(401, "无效的token"));
-    }
-
-    // 将信息存储到res.locals供后续使用
-    res.locals.device = appInstall.device;
-    res.locals.appInstall = appInstall;
-    res.locals.deviceId = appInstall.device.id;
-    res.locals.token = token;
-    next();
-  } catch (error) {
-    next(error);
-  }
 };
 
 /**
@@ -54,18 +54,18 @@ export const kvTokenAuth = async (req, res, next) => {
  * 3. Body: token 或 apptoken
  */
 function extractToken(req) {
-  // 优先从 Authorization header 提取 Bearer token（支持大小写）
-  const authHeader = req.headers && (req.headers.authorization || req.headers.Authorization);
-  if (authHeader) {
-    const m = authHeader.match(/^Bearer\s+(.+)$/i);
-    if (m) return m[1];
-  }
+    // 优先从 Authorization header 提取 Bearer token（支持大小写）
+    const authHeader = req.headers && (req.headers.authorization || req.headers.Authorization);
+    if (authHeader) {
+        const m = authHeader.match(/^Bearer\s+(.+)$/i);
+        if (m) return m[1];
+    }
 
-  return (
-    req.headers["x-app-token"] ||
-    req.query.token ||
-    req.query.apptoken ||
-    (req.body && req.body.token) ||
-    (req.body && req.body.apptoken)
-  );
+    return (
+        req.headers["x-app-token"] ||
+        req.query.token ||
+        req.query.apptoken ||
+        (req.body && req.body.token) ||
+        (req.body && req.body.apptoken)
+    );
 }

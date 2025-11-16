@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import {PrismaClient} from "@prisma/client";
 import kvStore from "./kvStore.js";
 
 const prisma = new PrismaClient();
@@ -12,8 +12,8 @@ let systemDeviceId = null;
 
 // 封装默认 readme 对象
 const defaultReadme = {
-  title: "Classworks 服务端",
-  readme: "暂无 Readme 内容",
+    title: "Classworks 服务端",
+    readme: "暂无 Readme 内容",
 };
 
 /**
@@ -21,25 +21,25 @@ const defaultReadme = {
  * @returns {Promise<number>} 系统设备ID
  */
 async function getSystemDeviceId() {
-  if (systemDeviceId) return systemDeviceId;
+    if (systemDeviceId) return systemDeviceId;
 
-  let device = await prisma.device.findUnique({
-    where: { uuid: SYSTEM_DEVICE_UUID },
-    select: { id: true },
-  });
-
-  if (!device) {
-    device = await prisma.device.create({
-      data: {
-        uuid: SYSTEM_DEVICE_UUID,
-        name: "系统设备",
-      },
-      select: { id: true },
+    let device = await prisma.device.findUnique({
+        where: {uuid: SYSTEM_DEVICE_UUID},
+        select: {id: true},
     });
-  }
 
-  systemDeviceId = device.id;
-  return systemDeviceId;
+    if (!device) {
+        device = await prisma.device.create({
+            data: {
+                uuid: SYSTEM_DEVICE_UUID,
+                name: "系统设备",
+            },
+            select: {id: true},
+        });
+    }
+
+    systemDeviceId = device.id;
+    return systemDeviceId;
 }
 
 /**
@@ -47,26 +47,26 @@ async function getSystemDeviceId() {
  * 在应用启动时调用此函数
  */
 export const initReadme = async () => {
-  try {
-    const deviceId = await getSystemDeviceId();
-    const storedValue = await kvStore.get(deviceId, "info");
+    try {
+        const deviceId = await getSystemDeviceId();
+        const storedValue = await kvStore.get(deviceId, "info");
 
-    // 合并默认值与存储值，确保结构完整
-    readmeValue = {
-      ...defaultReadme,
-      ...(storedValue || {}),
-    };
+        // 合并默认值与存储值，确保结构完整
+        readmeValue = {
+            ...defaultReadme,
+            ...(storedValue || {}),
+        };
 
-    console.log("✅ 站点信息初始化成功");
-  } catch (error) {
-    console.error("❌ 站点信息初始化失败:", {
-      message: error?.message,
-      stack: error?.stack,
-    });
+        console.log("✅ 站点信息初始化成功");
+    } catch (error) {
+        console.error("❌ 站点信息初始化失败:", {
+            message: error?.message,
+            stack: error?.stack,
+        });
 
-    // 确保在异常情况下也有默认值
-    readmeValue = { ...defaultReadme };
-  }
+        // 确保在异常情况下也有默认值
+        readmeValue = {...defaultReadme};
+    }
 };
 
 /**
@@ -74,7 +74,7 @@ export const initReadme = async () => {
  * @returns {Object} readme 值对象
  */
 export const getReadmeValue = () => {
-  return readmeValue || { ...defaultReadme };
+    return readmeValue || {...defaultReadme};
 };
 
 /**
@@ -83,19 +83,19 @@ export const getReadmeValue = () => {
  * @returns {Promise<void>}
  */
 export const updateReadmeValue = async (newValue) => {
-  try {
-    const deviceId = await getSystemDeviceId();
-    await kvStore.upsert(deviceId, "info", newValue);
-    readmeValue = {
-      ...defaultReadme,
-      ...newValue,
-    };
-    console.log("✅ 站点信息更新成功");
-  } catch (error) {
-    console.error("❌ 站点信息更新失败:", {
-      message: error?.message,
-      stack: error?.stack,
-    });
-    throw error;
-  }
+    try {
+        const deviceId = await getSystemDeviceId();
+        await kvStore.upsert(deviceId, "info", newValue);
+        readmeValue = {
+            ...defaultReadme,
+            ...newValue,
+        };
+        console.log("✅ 站点信息更新成功");
+    } catch (error) {
+        console.error("❌ 站点信息更新失败:", {
+            message: error?.message,
+            stack: error?.stack,
+        });
+        throw error;
+    }
 };

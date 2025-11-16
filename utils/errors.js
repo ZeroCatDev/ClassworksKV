@@ -7,14 +7,14 @@
  * @returns {object} 标准错误对象
  */
 const createError = (statusCode, message, details = null, code = null) => {
-  // 直接返回错误对象，不抛出异常
-  const error = {
-    statusCode: statusCode,
-    message: message || '服务器错误',
-    details: details,
-    code: code || undefined,
-  };
-  return error;
+    // 直接返回错误对象，不抛出异常
+    const error = {
+        statusCode: statusCode,
+        message: message || '服务器错误',
+        details: details,
+        code: code || undefined,
+    };
+    return error;
 };
 
 /**
@@ -24,11 +24,11 @@ const createError = (statusCode, message, details = null, code = null) => {
  * @returns {object} 格式化的成功响应
  */
 const createSuccessResponse = (data, message = null) => {
-  return {
-    success: true,
-    message,
-    data,
-  };
+    return {
+        success: true,
+        message,
+        data,
+    };
 };
 
 /**
@@ -37,20 +37,20 @@ const createSuccessResponse = (data, message = null) => {
  * @param {Function} next - Express中间件next函数
  */
 const passError = (error, next) => {
-  // 不管是什么类型的错误，统一转换并传递
-  if (error instanceof Error) {
-    // 如果是标准Error，则转换为HTTP错误并保留原始信息
-    const httpError = {
-      statusCode: error.statusCode || 500,
-      message: error.message || '服务器错误',
-      details: error.details || null,
-      originalError: error
-    };
-    next(httpError);
-  } else {
-    // 已经是自定义错误对象结构，直接传递
-    next(error);
-  }
+    // 不管是什么类型的错误，统一转换并传递
+    if (error instanceof Error) {
+        // 如果是标准Error，则转换为HTTP错误并保留原始信息
+        const httpError = {
+            statusCode: error.statusCode || 500,
+            message: error.message || '服务器错误',
+            details: error.details || null,
+            originalError: error
+        };
+        next(httpError);
+    } else {
+        // 已经是自定义错误对象结构，直接传递
+        next(error);
+    }
 };
 
 /**
@@ -59,11 +59,11 @@ const passError = (error, next) => {
  * @returns {Function} 包装后的函数
  */
 const catchAsync = (fn) => {
-  return (req, res, next) => {
-    Promise.resolve(fn(req, res, next)).catch(error => {
-      passError(error, next);
-    });
-  };
+    return (req, res, next) => {
+        Promise.resolve(fn(req, res, next)).catch(error => {
+            passError(error, next);
+        });
+    };
 };
 
 /**
@@ -73,31 +73,31 @@ const catchAsync = (fn) => {
  * @returns {[error, result]} 包含错误和结果的数组
  */
 const trySafe = (fn, ...args) => {
-  try {
-    const result = fn(...args);
-    return [null, result];
-  } catch (error) {
-    return [error, null];
-  }
+    try {
+        const result = fn(...args);
+        return [null, result];
+    } catch (error) {
+        return [error, null];
+    }
 };
 
 // 常用状态码
 const HTTP_STATUS = {
-  OK: 200,
-  CREATED: 201,
-  NO_CONTENT: 204,
-  BAD_REQUEST: 400,
-  UNAUTHORIZED: 401,
-  FORBIDDEN: 403,
-  NOT_FOUND: 404,
-  INTERNAL_SERVER_ERROR: 500,
+    OK: 200,
+    CREATED: 201,
+    NO_CONTENT: 204,
+    BAD_REQUEST: 400,
+    UNAUTHORIZED: 401,
+    FORBIDDEN: 403,
+    NOT_FOUND: 404,
+    INTERNAL_SERVER_ERROR: 500,
 };
 
 export default {
-  createError,
-  createSuccessResponse,
-  passError,
-  catchAsync,
-  trySafe,
-  HTTP_STATUS,
+    createError,
+    createSuccessResponse,
+    passError,
+    catchAsync,
+    trySafe,
+    HTTP_STATUS,
 };
