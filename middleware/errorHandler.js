@@ -14,14 +14,16 @@ const errorHandler = (err, req, res, next) => {
       console.error(err);
     }
     // 提取错误信息
-    const statusCode = err.statusCode || err.status || 500;
-    const message = err.message || "服务器错误";
-    const details = err.details || null;
+  const statusCode = err.statusCode || err.status || 500;
+  const message = err.message || "服务器错误";
+  const details = err.details || null;
+  const code = err.code || undefined;
 
     // 返回统一格式的错误响应
     return res.status(statusCode).json({
       success: false,
       message: message,
+      code: code,
       details: details,
       error:
         process.env.NODE_ENV === "production"

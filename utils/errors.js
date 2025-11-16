@@ -1,16 +1,18 @@
 /**
  * 创建标准错误对象
  * @param {number} statusCode - HTTP状态码
- * @param {string} [message] - 错误消息
+ * @param {string} [message] - 错误消息（推荐使用稳定的机器可读文本，如 JWT_EXPIRED）
  * @param {object} [details] - 附加信息
+ * @param {string} [code] - 业务错误码（如 AUTH_JWT_EXPIRED）
  * @returns {object} 标准错误对象
  */
-const createError = (statusCode, message, details = null) => {
+const createError = (statusCode, message, details = null, code = null) => {
   // 直接返回错误对象，不抛出异常
   const error = {
     statusCode: statusCode,
     message: message || '服务器错误',
-    details: details
+    details: details,
+    code: code || undefined,
   };
   return error;
 };

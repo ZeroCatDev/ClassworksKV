@@ -76,7 +76,10 @@ export const jwtAuth = async (req, res, next) => {
         }
 
         if (newTokenError.name === 'TokenExpiredError' || legacyTokenError.name === 'TokenExpiredError') {
-          return next(errors.createError(401, "JWT token已过期"));
+          // 统一的账户JWT过期返回
+          // message: JWT_EXPIRED（用于客户端稳定识别）
+          // code: AUTH_JWT_EXPIRED（业务错误码）
+          return next(errors.createError(401, "JWT_EXPIRED", null, "AUTH_JWT_EXPIRED"));
         }
 
         return next(errors.createError(401, "token验证失败"));
