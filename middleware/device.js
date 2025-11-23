@@ -10,6 +10,7 @@
 import {PrismaClient} from "@prisma/client";
 import errors from "../utils/errors.js";
 import {verifyDevicePassword} from "../utils/crypto.js";
+import {analyzeDevice} from "../utils/deviceDetector.js";
 
 const prisma = new PrismaClient();
 
@@ -38,7 +39,7 @@ async function createDefaultAutoAuth(deviceId) {
  * 设备中间件 - 统一处理设备UUID
  *
  * 从req.params.deviceUuid或req.body.deviceUuid获取UUID
- * 如果设备不存在则自动创建
+ * 如果设备不存在则自动创建，并智能生成设备名称
  * 将设备信息存储到res.locals.device
  *
  * 使用方式：
@@ -58,11 +59,18 @@ export const deviceMiddleware = errors.catchAsync(async (req, res, next) => {
     });
 
     if (!device) {
-        // 设备不存在，自动创建
+        // 设备不存在，自动创建并生成智能设备名称
+        const userAgent = req.headers['user-agent'];
+        const customDeviceType = req.body.deviceType || req.query.deviceType;
+        const note = req.body.note || req.query.note;
+
+        // 生成设备名称，确保不为空
+        const deviceName = analyzeDevice(userAgent, req.headers, customDeviceType, note).generatedName;
+
         device = await prisma.device.create({
             data: {
                 uuid: deviceUuid,
-                name: null,
+                name: deviceName,
                 password: null,
                 passwordHint: null,
                 accountId: null,
@@ -71,6 +79,9 @@ export const deviceMiddleware = errors.catchAsync(async (req, res, next) => {
 
         // 为新创建的设备添加默认的自动登录配置
         await createDefaultAutoAuth(device.id);
+
+        // 将设备分析结果添加到响应中
+        res.locals.deviceAnalysis = deviceAnalysis;
     }
 
     // 将设备信息存储到res.locals
