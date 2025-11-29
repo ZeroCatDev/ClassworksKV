@@ -67,6 +67,24 @@ export const oauthProviders = {
         website: "https://houlang.cloud",
         pkce: true, // 启用PKCE支持
     },
+    dlass: {
+        // Dlass（Casdoor）- 标准 OIDC Provider
+        clientId: process.env.DLASS_CLIENT_ID,
+        clientSecret: process.env.DLASS_CLIENT_SECRET,
+        // Casdoor 标准端点
+        authorizationURL: "https://auth.wiki.forum/login/oauth/authorize",
+        tokenURL: "https://auth.wiki.forum/api/login/oauth/access_token",
+        userInfoURL: "https://auth.wiki.forum/api/userinfo",
+        scope: "openid profile email offline_access",
+        // 展示相关
+        name: "dlass",
+        displayName: "Dlass 账户",
+        icon: "casdoor",
+        color: "#3498db",
+        description: "使用Dlass账户登录",
+        website: "https://dlass.tech",
+        tokenRequestFormat: "json", // Casdoor 推荐 JSON 提交
+    },
 };
 
 // 获取OAuth回调URL

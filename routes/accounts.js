@@ -282,6 +282,14 @@ router.get("/oauth/:provider/callback", async (req, res) => {
                 name: userData.name || userData.preferred_username || userData.nickname,
                 avatarUrl: userData.picture,
             };
+        } else if (provider === "dlass") {
+            // Dlass（Casdoor）标准OIDC用户信息
+            normalizedUser = {
+                providerId: userData.sub,
+                email: userData.email_verified ? userData.email : userData.email || null,
+                name: userData.name || userData.preferred_username || userData.nickname,
+                avatarUrl: userData.picture,
+            };
         }
 
         // 名称为空时，用邮箱@前部分回填（若邮箱可用）
