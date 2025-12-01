@@ -356,7 +356,10 @@ router.post(
         const {key} = req.params;
         const value = req.body;
 
-        if (!value || Object.keys(value).length === 0) {
+        // 【修改点】允许空数组通过校验，但继续拦截真正的空对象 {}
+        // 如果 value 是空数组 []，Object.keys 为 0，但 !Array.isArray 为 false，条件为 false -> 通过
+        // 如果 value 是空对象 {}，Object.keys 为 0，且 !Array.isArray 为 true，条件为 true -> 拦截
+        if (!value || (Object.keys(value).length === 0 && !Array.isArray(value))) {
             return next(errors.createError(400, "请提供有效的JSON值"));
         }
 
@@ -429,4 +432,4 @@ router.delete(
     })
 );
 
-export default router;
+export default router;v
