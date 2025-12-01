@@ -356,9 +356,7 @@ router.post(
         const {key} = req.params;
         const value = req.body;
 
-        if (!value || Object.keys(value).length === 0) {
-            return next(errors.createError(400, "请提供有效的JSON值"));
-        }
+      
 
         // 获取客户端IP
         const creatorIp =
