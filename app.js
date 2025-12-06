@@ -25,6 +25,10 @@ app.use(
     cors({
         exposedHeaders: ["ratelimit-policy", "retry-after", "ratelimit"], // 告诉浏览器这些响应头可以暴露
         maxAge: 86400, // 设置OPTIONS请求的结果缓存24小时(86400秒)，减少预检请求
+        credentials: true, // 允许跨域请求携带凭证
+        allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"], // 允许的请求头
+        methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // 允许的HTTP方法
+        withCredentials: true, // 允许携带cookie等凭证信息
     })
 );
 app.disable("x-powered-by");
