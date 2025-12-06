@@ -100,7 +100,7 @@ export function initSocket(server) {
     io = new Server(server, {
         cors: {
             origin: "*",
-            methods: ["GET", "POST"],
+            methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
             allowedHeaders: ["*"],
             credentials: false
         },
