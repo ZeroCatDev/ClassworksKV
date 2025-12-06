@@ -12,9 +12,9 @@
  * - 令牌信息缓存：在连接时预加载令牌详细信息以提高性能
  */
 
-import {Server} from "socket.io";
-import {PrismaClient} from "@prisma/client";
-import {onlineDevicesGauge} from "./metrics.js";
+import { Server } from "socket.io";
+import { PrismaClient } from "@prisma/client";
+import { onlineDevicesGauge } from "./metrics.js";
 import DeviceDetector from "node-device-detector";
 import ClientHints from "node-device-detector/client-hints.js";
 
@@ -96,14 +96,16 @@ function detectDeviceName(userAgent, headers = {}) {
 export function initSocket(server) {
     if (io) return io;
 
-    const allowOrigin = process.env.FRONTEND_URL || "*";
 
     io = new Server(server, {
         cors: {
-            origin: allowOrigin,
+            origin: "*",
             methods: ["GET", "POST"],
-            credentials: true,
+            allowedHeaders: ["*"],
+            credentials: false
         },
+        // 传输方式回退策略：优先使用WebSocket,回退到轮询
+        transports: ["polling", "websocket"],
     });
 
     io.on("connection", (socket) => {
@@ -132,8 +134,8 @@ export function initSocket(server) {
                 const token = payload?.token || payload?.apptoken;
                 if (typeof token !== "string" || token.length === 0) return;
                 const appInstall = await prisma.appInstall.findUnique({
-                    where: {token},
-                    include: {device: {select: {uuid: true}}},
+                    where: { token },
+                    include: { device: { select: { uuid: true } } },
                 });
                 const uuid = appInstall?.device?.uuid;
                 if (uuid) {
@@ -156,11 +158,11 @@ export function initSocket(server) {
         // 获取事件历史记录
         socket.on("get-event-history", (data) => {
             try {
-                const {limit = 50, offset = 0} = data || {};
+                const { limit = 50, offset = 0 } = data || {};
                 const uuids = Array.from(socket.data.deviceUuids || []);
 
                 if (uuids.length === 0) {
-                    socket.emit("event-history-error", {reason: "not_joined_any_device"});
+                    socket.emit("event-history-error", { reason: "not_joined_any_device" });
                     return;
                 }
 
@@ -182,7 +184,7 @@ export function initSocket(server) {
 
             } catch (err) {
                 console.error("get-event-history error:", err);
-                socket.emit("event-history-error", {reason: "internal_error"});
+                socket.emit("event-history-error", { reason: "internal_error" });
             }
         });
 
@@ -191,35 +193,35 @@ export function initSocket(server) {
             try {
                 // 验证数据结构
                 if (!data || typeof data !== "object") {
-                    socket.emit("event-error", {reason: "invalid_data_format"});
+                    socket.emit("event-error", { reason: "invalid_data_format" });
                     return;
                 }
 
-                const {type, content} = data;
+                const { type, content } = data;
 
                 // 验证事件类型
                 if (typeof type !== "string" || type.trim().length === 0) {
-                    socket.emit("event-error", {reason: "invalid_event_type"});
+                    socket.emit("event-error", { reason: "invalid_event_type" });
                     return;
                 }
 
                 // 验证内容格式（必须是对象或null）
                 if (content !== null && (typeof content !== "object" || Array.isArray(content))) {
-                    socket.emit("event-error", {reason: "content_must_be_object_or_null"});
+                    socket.emit("event-error", { reason: "content_must_be_object_or_null" });
                     return;
                 }
 
                 // 获取当前socket所在的设备房间
                 const uuids = Array.from(socket.data.deviceUuids || []);
                 if (uuids.length === 0) {
-                    socket.emit("event-error", {reason: "not_joined_any_device"});
+                    socket.emit("event-error", { reason: "not_joined_any_device" });
                     return;
                 }
 
                 // 检查只读权限
                 const tokenInfo = socket.data.tokenInfo;
                 if (tokenInfo?.isReadOnly) {
-                    socket.emit("event-error", {reason: "readonly_token_cannot_send_events"});
+                    socket.emit("event-error", { reason: "readonly_token_cannot_send_events" });
                     return;
                 }
 
@@ -227,7 +229,7 @@ export function initSocket(server) {
                 const MAX_SIZE = 10240; // 10KB
                 const serializedContent = JSON.stringify(content);
                 if (serializedContent.length > MAX_SIZE) {
-                    socket.emit("event-error", {reason: "content_too_large", maxSize: MAX_SIZE});
+                    socket.emit("event-error", { reason: "content_too_large", maxSize: MAX_SIZE });
                     return;
                 }
 
@@ -274,7 +276,7 @@ export function initSocket(server) {
 
             } catch (err) {
                 console.error("send-event error:", err);
-                socket.emit("event-error", {reason: "internal_error"});
+                socket.emit("event-error", { reason: "internal_error" });
             }
         });
 
@@ -288,10 +290,10 @@ export function initSocket(server) {
 
             // 清理socket相关缓存
             if (socket.data.currentToken) {
-                // 如果这是该token的最后一个连接，考虑清理缓存
+                // 如果这是该token的最后一个连接,考虑清理缓存
                 const tokenSet = onlineTokens.get(socket.data.currentToken);
                 if (!tokenSet || tokenSet.size === 0) {
-                    // 可以选择保留缓存一段时间，这里暂时保留
+                    // 可以选择保留缓存一段时间,这里暂时保留
                     // tokenInfoCache.delete(socket.data.currentToken);
                 }
             }
@@ -320,7 +322,7 @@ function joinDeviceRoom(socket, uuid) {
     set.add(socket.id);
     onlineMap.set(uuid, set);
     // 可选：通知加入
-    io.to(uuid).emit("device-joined", {uuid, connections: set.size});
+    io.to(uuid).emit("device-joined", { uuid, connections: set.size });
 }
 
 /**
@@ -525,7 +527,7 @@ function cleanupDeviceCache(uuid) {
 export function getOnlineDevices() {
     const list = [];
     for (const [token, set] of onlineTokens.entries()) {
-        list.push({token, connections: set.size});
+        list.push({ token, connections: set.size });
     }
     // 默认按连接数降序
     return list.sort((a, b) => b.connections - a.connections);
@@ -549,7 +551,7 @@ export default {
 async function joinByToken(socket, token) {
     try {
         const appInstall = await prisma.appInstall.findUnique({
-            where: {token},
+            where: { token },
             include: {
                 device: {
                     select: {
@@ -606,10 +608,10 @@ async function joinByToken(socket, token) {
                 }
             });
         } else {
-            socket.emit("join-error", {by: "token", reason: "invalid_token"});
+            socket.emit("join-error", { by: "token", reason: "invalid_token" });
         }
     } catch (error) {
         console.error("joinByToken error:", error);
-        socket.emit("join-error", {by: "token", reason: "database_error"});
+        socket.emit("join-error", { by: "token", reason: "database_error" });
     }
 }
