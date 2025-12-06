@@ -1,7 +1,7 @@
-import {Router} from "express";
+import { Router } from "express";
 import kvStore from "../utils/kvStore.js";
-import {broadcastKeyChanged} from "../utils/socket.js";
-import {kvTokenAuth} from "../middleware/kvTokenAuth.js";
+import { broadcastKeyChanged } from "../utils/socket.js";
+import { kvTokenAuth } from "../middleware/kvTokenAuth.js";
 import {
     prepareTokenForRateLimit,
     tokenBatchLimiter,
@@ -10,7 +10,7 @@ import {
     tokenWriteLimiter
 } from "../middleware/rateLimiter.js";
 import errors from "../utils/errors.js";
-import {PrismaClient} from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 
 const router = Router();
 
@@ -34,7 +34,7 @@ router.get(
 
         // 获取设备信息，包含关联的账号
         const device = await prisma.device.findUnique({
-            where: {id: deviceId},
+            where: { id: deviceId },
             include: {
                 account: true,
             },
@@ -88,7 +88,7 @@ router.get(
 
         // 查找当前 token 对应的应用安装记录
         const appInstall = await prisma.appInstall.findUnique({
-            where: {token},
+            where: { token },
             include: {
                 device: {
                     select: {
@@ -133,7 +133,7 @@ router.get(
     tokenReadLimiter,
     errors.catchAsync(async (req, res) => {
         const deviceId = res.locals.deviceId;
-        const {sortBy, sortDir, limit, skip} = req.query;
+        const { sortBy, sortDir, limit, skip } = req.query;
 
         // 构建选项
         const options = {
@@ -184,7 +184,7 @@ router.get(
     tokenReadLimiter,
     errors.catchAsync(async (req, res) => {
         const deviceId = res.locals.deviceId;
-        const {sortBy, sortDir, limit, skip} = req.query;
+        const { sortBy, sortDir, limit, skip } = req.query;
 
         // 构建选项
         const options = {
@@ -230,7 +230,7 @@ router.get(
     tokenReadLimiter,
     errors.catchAsync(async (req, res, next) => {
         const deviceId = res.locals.deviceId;
-        const {key} = req.params;
+        const { key } = req.params;
 
         const value = await kvStore.get(deviceId, key);
 
@@ -253,7 +253,7 @@ router.get(
     tokenReadLimiter,
     errors.catchAsync(async (req, res, next) => {
         const deviceId = res.locals.deviceId;
-        const {key} = req.params;
+        const { key } = req.params;
 
         const metadata = await kvStore.getMetadata(deviceId, key);
         if (!metadata) {
@@ -353,10 +353,22 @@ router.post(
         }
 
         const deviceId = res.locals.deviceId;
-        const {key} = req.params;
-        const value = req.body;
+        const { key } = req.params;
+        let value = req.body;
 
-      
+        // 处理空值，转换为空对象
+        if (value === null || value === undefined || value === '') {
+            value = {};
+        }
+
+        // 验证是否能被 JSON 序列化
+        try {
+            JSON.stringify(value);
+        } catch (error) {
+            return next(
+                errors.createError(400, "无效的数据格式")
+            );
+        }
 
         // 获取客户端IP
         const creatorIp =
@@ -366,7 +378,7 @@ router.post(
             req.connection.socket?.remoteAddress ||
             "";
 
-        const result = await kvStore.upsert(deviceId, key, value, creatorIp);
+        const result = kvStore.upsert(deviceId, key, value, creatorIp);
 
         // 广播单个键的变更
         const uuid = res.locals.device?.uuid;
@@ -402,7 +414,7 @@ router.delete(
         }
 
         const deviceId = res.locals.deviceId;
-        const {key} = req.params;
+        const { key } = req.params;
 
         const result = await kvStore.delete(deviceId, key);
 
