@@ -378,7 +378,7 @@ router.post(
             req.connection.socket?.remoteAddress ||
             "";
 
-        const result = kvStore.upsert(deviceId, key, value, creatorIp);
+        const result = await kvStore.upsert(deviceId, key, value, creatorIp);
 
         // 广播单个键的变更
         const uuid = res.locals.device?.uuid;
