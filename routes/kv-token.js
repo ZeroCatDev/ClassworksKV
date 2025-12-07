@@ -298,43 +298,25 @@ router.post(
             req.connection.socket?.remoteAddress ||
             "";
 
-        const results = [];
-        const errorList = [];
-
-        // 批量处理所有键值对
-        for (const [key, value] of Object.entries(data)) {
-            try {
-                const result = await kvStore.upsert(deviceId, key, value, creatorIp);
-                results.push({
-                    key: result.key,
-                    created: result.createdAt.getTime() === result.updatedAt.getTime(),
-                });
-                // 广播每个键的变更
-                const uuid = res.locals.device?.uuid;
-                if (uuid) {
-                    broadcastKeyChanged(uuid, {
-                        key: result.key,
-                        action: "upsert",
-                        created: result.createdAt.getTime() === result.updatedAt.getTime(),
-                        updatedAt: result.updatedAt,
-                        batch: true,
-                    });
-                }
-            } catch (error) {
-                errorList.push({
-                    key,
-                    error: error.message,
-                });
-            }
-        }
+        // 使用优化的批量upsert方法
+        const { results, errors: errorList } = await kvStore.batchUpsert(deviceId, data, creatorIp);
 
         return res.status(200).json({
-            deviceId,
-            total: Object.keys(data).length,
-            successful: results.length,
-            failed: errorList.length,
-            results,
-            errors: errorList.length > 0 ? errorList : undefined,
+            code: 200,
+            message: "批量导入成功",
+            data: {
+                deviceId,
+                summary: {
+                    total: Object.keys(data).length,
+                    successful: results.length,
+                    failed: errorList.length,
+                },
+                results: results.map(r => ({
+                    key: r.key,
+                    isNew: r.created,
+                })),
+                ...(errorList.length > 0 && { errors: errorList }),
+            },
         });
     })
 );
