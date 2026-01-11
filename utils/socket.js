@@ -245,7 +245,7 @@ export function initSocket(server) {
                     senderInfo: {
                         appId: tokenInfo?.appId,
                         deviceType: tokenInfo?.deviceType,
-                        deviceName: tokenInfo?.deviceName,
+                        deviceName: tokenInfo?.note,
                         isReadOnly: tokenInfo?.isReadOnly || false,
                         note: tokenInfo?.note
                     }

@@ -339,6 +339,54 @@ router.post(
 );
 
 /**
+ * POST /apps/tokens/:token/set-teacher-name
+ * 设置教师名称 (仅限教师类型的 token)
+ * Body: { name: string }
+ */
+router.post(
+    "/tokens/:token/set-teacher-name",
+    errors.catchAsync(async (req, res, next) => {
+        const {token} = req.params;
+        const {name} = req.body;
+
+        if (!name) {
+            return next(errors.createError(400, "需要提供教师名称"));
+        }
+
+        // 查找 token 对应的应用安装记录
+        const appInstall = await prisma.appInstall.findUnique({
+            where: {token},
+            include: {
+                device: true,
+            },
+        });
+
+        if (!appInstall) {
+            return next(errors.createError(404, "Token 不存在"));
+        }
+
+        // 验证 token 类型是否为 teacher
+        if (appInstall.deviceType !== 'teacher') {
+            return next(errors.createError(403, "只有教师类型的 token 可以使用此接口"));
+        }
+
+        // 更新 AppInstall 的 note 字段为教师名称
+        const updatedInstall = await prisma.appInstall.update({
+            where: {id: appInstall.id},
+            data: {note: name},
+        });
+
+        return res.json({
+            success: true,
+            token: updatedInstall.token,
+            name: updatedInstall.note,
+            deviceType: updatedInstall.deviceType,
+            updatedAt: updatedInstall.updatedAt,
+        });
+    })
+);
+
+/**
  * PUT /apps/tokens/:token/note
  * 更新令牌的备注信息
  * Body: { note: string }
