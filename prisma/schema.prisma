@@ -16,8 +16,8 @@ model account {
   avatarurl          String?   @db.VarChar(191)
   providerdata       Json?     @db.Json
   accesstoken        String?
-  createdat          DateTime  @default(now()) @db.Timestamptz(6)
-  updatedat          DateTime  @db.Timestamptz(6)
+  createdat          DateTime  @default(dbgenerated("timezone('Asia/Shanghai', now())")) @db.Timestamptz(6)
+  updatedat          DateTime  @default(dbgenerated("timezone('Asia/Shanghai', now())")) @updatedAt @db.Timestamptz(6)
   refreshtoken       String?
   refreshtokenexpiry DateTime? @db.Timestamptz(6)
   tokenversion       Int       @default(1)
@@ -32,8 +32,8 @@ model appinstall {
   appid       String   @db.VarChar(191)
   token       String   @unique(map: "idx_18055_appinstall_token_key") @db.VarChar(191)
   note        String?  @db.VarChar(191)
-  installedat DateTime @default(now()) @db.Timestamptz(6)
-  updatedat   DateTime @db.Timestamptz(6)
+  installedat DateTime @default(dbgenerated("timezone('Asia/Shanghai', now())")) @db.Timestamptz(6)
+  updatedat   DateTime @default(dbgenerated("timezone('Asia/Shanghai', now())")) @updatedAt @db.Timestamptz(6)
   devicetype  String?  @db.VarChar(191)
   isreadonly  Boolean  @default(false)
   device      device   @relation(fields: [deviceid], references: [id], onDelete: Cascade)
@@ -47,8 +47,8 @@ model autoauth {
   password   String?  @db.VarChar(191)
   devicetype String?  @db.VarChar(191)
   isreadonly Boolean  @default(false)
-  createdat  DateTime @default(now()) @db.Timestamptz(6)
-  updatedat  DateTime @db.Timestamptz(6)
+  createdat  DateTime @default(dbgenerated("timezone('Asia/Shanghai', now())")) @db.Timestamptz(6)
+  updatedat  DateTime @default(dbgenerated("timezone('Asia/Shanghai', now())")) @updatedAt @db.Timestamptz(6)
   device     device   @relation(fields: [deviceid], references: [id], onDelete: Cascade)
 
   @@unique([deviceid, password], map: "idx_18062_autoauth_deviceid_password_key")
@@ -59,8 +59,8 @@ model device {
   uuid         String       @unique(map: "idx_18069_device_uuid_key") @db.VarChar(191)
   name         String?      @db.VarChar(191)
   accountid    String?      @db.VarChar(191)
-  createdat    DateTime     @default(now()) @db.Timestamptz(6)
-  updatedat    DateTime     @db.Timestamptz(6)
+  createdat    DateTime     @default(dbgenerated("timezone('Asia/Shanghai', now())")) @db.Timestamptz(6)
+  updatedat    DateTime     @default(dbgenerated("timezone('Asia/Shanghai', now())")) @updatedAt @db.Timestamptz(6)
   password     String?      @db.VarChar(191)
   passwordhint String?      @db.VarChar(191)
   namespace    String?      @unique(map: "idx_18069_device_namespace_key") @db.VarChar(191)
@@ -77,8 +77,8 @@ model kvstore {
   key       String   @db.VarChar(191)
   value     Json     @db.Json
   creatorip String?  @default("") @db.VarChar(191)
-  createdat DateTime @default(now()) @db.Timestamptz(6)
-  updatedat DateTime @db.Timestamptz(6)
+  createdat DateTime @default(dbgenerated("timezone('Asia/Shanghai', now())")) @db.Timestamptz(6)
+  updatedat DateTime @default(dbgenerated("timezone('Asia/Shanghai', now())")) @updatedAt @db.Timestamptz(6)
   device    device   @relation(fields: [deviceid], references: [id], onDelete: Cascade)
 
   @@id([deviceid, key], map: "idx_18075_primary")

@@ -22,7 +22,7 @@ export const kvTokenAuth = async (req, res, next) => {
         }
 
         // 查找token对应的应用安装信息
-        const appInstall = await prisma.appInstall.findUnique({
+        const appInstall = await prisma.appinstall.findUnique({
             where: {token},
             include: {
                 device: true,
@@ -36,7 +36,7 @@ export const kvTokenAuth = async (req, res, next) => {
         // 将信息存储到res.locals供后续使用
         res.locals.device = appInstall.device;
         res.locals.appInstall = appInstall;
-        res.locals.deviceId = appInstall.device.id;
+        res.locals.deviceid = appInstall.device.id;
         res.locals.token = token;
         next();
     } catch (error) {

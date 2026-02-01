@@ -33,7 +33,7 @@ export const uuidAuth = async (req, res, next) => {
 
         // 存储设备信息到locals
         res.locals.device = device;
-        res.locals.deviceId = device.id;
+        res.locals.deviceid = device.id;
 
         // 3. 验证密码或JWT（二选一）
         const password = extractPassword(req);
@@ -104,7 +104,7 @@ export const extractDeviceInfo = async (req, res, next) => {
         throw errors.createError(404, "设备不存在");
     }
     res.locals.device = device;
-    res.locals.deviceId = device.id;
+    res.locals.deviceid = device.id;
     next();
 }
 

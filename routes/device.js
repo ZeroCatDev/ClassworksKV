@@ -9,17 +9,17 @@ const router = Router();
 
 /**
  * 为新设备创建默认的自动登录配置
- * @param {number} deviceId - 设备ID
+ * @param {number} deviceid - 设备ID
  */
-async function createDefaultAutoAuth(deviceId) {
+async function createDefaultAutoAuth(deviceid) {
     try {
         // 创建默认的自动授权配置：不需要密码、类型是classroom（一体机）
         await prisma.autoAuth.create({
             data: {
-                deviceId: deviceId,
+                deviceid: deviceid,
                 password: null, // 无密码
-                deviceType: "classroom", // 一体机类型
-                isReadOnly: false, // 非只读
+                devicetype: "classroom", // 一体机类型
+                isreadonly: false, // 非只读
             },
         });
     } catch (error) {
@@ -90,7 +90,7 @@ router.post(
                     uuid: device.uuid,
                     name: device.name,
                     namespace: device.namespace,
-                    createdAt: device.createdAt,
+                    createdat: device.createdat,
                 },
             });
         } catch (error) {
@@ -117,7 +117,7 @@ router.get(
                         id: true,
                         name: true,
                         email: true,
-                        avatarUrl: true,
+                        avatarurl: true,
                     },
                 },
             },
@@ -132,13 +132,13 @@ router.get(
             uuid: device.uuid,
             name: device.name,
             hasPassword: !!device.password,
-            passwordHint: device.passwordHint,
-            createdAt: device.createdAt,
+            passwordhint: device.passwordhint,
+            createdat: device.createdat,
             account: device.account ? {
                 id: device.account.id,
                 name: device.account.name,
                 email: device.account.email,
-                avatarUrl: device.account.avatarUrl,
+                avatarurl: device.account.avatarurl,
             } : null,
             isBoundToAccount: !!device.account,
             namespace: device.namespace,
@@ -172,7 +172,7 @@ router.put(
                 uuid: updatedDevice.uuid,
                 name: updatedDevice.name,
                 hasPassword: !!updatedDevice.password,
-                passwordHint: updatedDevice.passwordHint,
+                passwordhint: updatedDevice.passwordhint,
             },
         });
     })

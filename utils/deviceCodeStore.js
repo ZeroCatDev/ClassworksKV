@@ -7,7 +7,7 @@
 
 class DeviceCodeStore {
     constructor() {
-        // 存储结构: { deviceCode: { token: string, expiresAt: number, createdAt: number } }
+        // 存储结构: { deviceCode: { token: string, expiresAt: number, createdat: number } }
         this.store = new Map();
 
         // 默认过期时间: 15分钟
@@ -44,7 +44,7 @@ class DeviceCodeStore {
         this.store.set(deviceCode, {
             token: null,
             expiresAt: now + this.expirationTime,
-            createdAt: now,
+            createdat: now,
         });
 
         return deviceCode;
@@ -143,7 +143,7 @@ class DeviceCodeStore {
         return {
             hasToken: !!entry.token,
             expiresAt: entry.expiresAt,
-            createdAt: entry.createdAt,
+            createdat: entry.createdat,
         };
     }
 
