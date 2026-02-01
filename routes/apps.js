@@ -179,7 +179,7 @@ router.post(
         const device = await prisma.device.findUnique({
             where: {namespace},
             include: {
-                autoAuths: true,
+                autoauths: true,
             },
         });
 
@@ -193,11 +193,11 @@ router.post(
         // 如果提供了密码，查找匹配密码的自动授权
         if (password) {
             // 首先尝试直接匹配明文密码
-            matchedAutoAuth = device.autoAuths.find(auth => auth.password === password);
+            matchedAutoAuth = device.autoauths.find(auth => auth.password === password);
 
             // 如果没有匹配到，尝试验证哈希密码（向后兼容）
             if (!matchedAutoAuth) {
-                for (const autoAuth of device.autoAuths) {
+                for (const autoAuth of device.autoauths) {
                     if (autoAuth.password && autoAuth.password.startsWith('$2')) { // bcrypt 哈希以 $2 开头
                         try {
                             if (await verifyDevicePassword(password, autoAuth.password)) {
@@ -225,7 +225,7 @@ router.post(
             }
         } else {
             // 如果没有提供密码，查找密码为空的自动授权
-            matchedAutoAuth = device.autoAuths.find(auth => !auth.password);
+            matchedAutoAuth = device.autoauths.find(auth => !auth.password);
 
             if (!matchedAutoAuth) {
                 return next(errors.createError(401, "需要提供密码"));

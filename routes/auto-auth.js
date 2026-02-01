@@ -30,13 +30,13 @@ router.get(
             return next(errors.createError(403, "该设备未绑定到您的账户"));
         }
 
-        const autoAuths = await prisma.autoAuth.findMany({
+        const autoauths = await prisma.autoAuth.findMany({
             where: {deviceid: device.id},
             orderBy: {createdat: 'desc'},
         });
 
         // 返回配置，智能处理密码显示
-        const configs = autoAuths.map(auth => {
+        const configs = autoauths.map(auth => {
             // 检查是否是 bcrypt 哈希密码
             const isHashedPassword = auth.password && auth.password.startsWith('$2');
 
