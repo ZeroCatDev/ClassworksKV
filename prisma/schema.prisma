@@ -8,7 +8,7 @@ datasource db {
 }
 
 model Account {
-  id                 String    @id(map: "idx_18303_PRIMARY") @db.VarChar(191)
+  id                 String    @id(map: "idx_18303_PRIMARY") @db.VarChar(191) @default(cuid())
   provider           String    @db.VarChar(191)
   providerId         String    @db.VarChar(191)
   email              String?   @db.VarChar(191)
@@ -28,7 +28,7 @@ model Account {
 }
 
 model AppInstall {
-  id          String   @id(map: "idx_18310_PRIMARY") @db.VarChar(191)
+  id          String   @id(map: "idx_18310_PRIMARY") @default(cuid()) @db.VarChar(191)
   deviceId    Int
   appId       String   @db.VarChar(191)
   token       String   @unique(map: "idx_18310_AppInstall_token_key") @db.VarChar(191)
@@ -44,7 +44,7 @@ model AppInstall {
 }
 
 model AutoAuth {
-  id         String   @id(map: "idx_18317_PRIMARY") @db.VarChar(191)
+  id         String   @id(map: "idx_18317_PRIMARY") @default(cuid()) @db.VarChar(191)
   deviceId   Int
   password   String?  @db.VarChar(191)
   deviceType String?  @db.VarChar(191)
@@ -58,7 +58,7 @@ model AutoAuth {
 }
 
 model Device {
-  id           Int          @id(map: "idx_18324_PRIMARY")
+  id           Int          @id(map: "idx_18324_PRIMARY") @default(autoincrement())
   uuid         String       @unique(map: "idx_18324_Device_uuid_key") @db.VarChar(191)
   name         String?      @db.VarChar(191)
   accountId    String?      @db.VarChar(191)
