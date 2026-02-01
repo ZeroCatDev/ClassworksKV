@@ -1,10 +1,10 @@
 import {Router} from "express";
-import {prisma} from "../utils/prisma.js";
 import crypto from "crypto";
 import {generateState, getCallbackURL, oauthProviders} from "../config/oauth.js";
 import {generateTokenPair, refreshAccessToken, revokeAllTokens, revokeRefreshToken} from "../utils/jwt.js";
 import {jwtAuth} from "../middleware/jwt-auth.js";
 import errors from "../utils/errors.js";
+import { prisma } from "../utils/prisma.js";
 
 const router = Router();
 
@@ -232,10 +232,10 @@ router.get("/oauth/:provider/callback", async (req, res) => {
 
         // 2. 使用访问令牌获取用户信息
         let userResponse;
-        // Casdoor 支持两种方式：Authorization Bearer 或 accesstoken 查询参数
+        // Casdoor 支持两种方式：Authorization Bearer 或 accessToken 查询参数
         if (provider === 'stcn') {
             const url = new URL(providerConfig.userInfoURL);
-            url.searchParams.set('accesstoken', tokenData.access_token);
+            url.searchParams.set('accessToken', tokenData.access_token);
             userResponse = await fetch(url, {headers: {"Accept": "application/json"}});
         } else {
             userResponse = await fetch(providerConfig.userInfoURL, {
@@ -256,14 +256,14 @@ router.get("/oauth/:provider/callback", async (req, res) => {
                 providerId: String(userData.id),
                 email: userData.email,
                 name: userData.name || userData.login,
-                avatarurl: userData.avatar_url,
+                avatarUrl: userData.avatar_url,
             };
         } else if (provider === "zerocat") {
             normalizedUser = {
                 providerId: userData.openid,
                 email: userData.email_verified ? userData.email : null,
                 name: userData.nickname || userData.username,
-                avatarurl: userData.avatar,
+                avatarUrl: userData.avatar,
             };
         } else if (provider === "hly") {
             // 厚浪云（Logto）标准OIDC用户信息
@@ -271,7 +271,7 @@ router.get("/oauth/:provider/callback", async (req, res) => {
                 providerId: userData.sub,
                 email: userData.email_verified ? userData.email : null,
                 name: userData.name || userData.preferred_username || userData.nickname,
-                avatarurl: userData.picture,
+                avatarUrl: userData.picture,
             };
         } else if (provider === "stcn") {
             // STCN（Casdoor）标准OIDC用户信息
@@ -279,7 +279,7 @@ router.get("/oauth/:provider/callback", async (req, res) => {
                 providerId: userData.sub,
                 email: userData.email_verified ? userData.email : userData.email || null,
                 name: userData.name || userData.preferred_username || userData.nickname,
-                avatarurl: userData.picture,
+                avatarUrl: userData.picture,
             };
         } else if (provider === "dlass") {
             // Dlass（Casdoor）标准OIDC用户信息
@@ -287,7 +287,7 @@ router.get("/oauth/:provider/callback", async (req, res) => {
                 providerId: userData.sub,
                 email: userData.email_verified ? userData.email : userData.email || null,
                 name: userData.name || userData.preferred_username || userData.nickname,
-                avatarurl: userData.picture,
+                avatarUrl: userData.picture,
             };
         }
 
@@ -316,25 +316,25 @@ router.get("/oauth/:provider/callback", async (req, res) => {
                 data: {
                     email: normalizedUser.email || account.email,
                     name: normalizedUser.name || account.name,
-                    avatarurl: normalizedUser.avatarurl || account.avatarurl,
+                    avatarUrl: normalizedUser.avatarUrl || account.avatarUrl,
                     providerData: userData,
-                    //refreshtoken: tokenData.refresh_token || account.refreshtoken,
-                    updatedat: new Date(),
+                    //refreshToken: tokenData.refresh_token || account.refreshToken,
+                    updatedAt: new Date(),
                 },
             });
         } else {
             // 创建新账户
-            const accesstoken = generateAccessToken();
+            const accessToken = generateAccessToken();
             account = await prisma.account.create({
                 data: {
                     provider,
                     providerId: normalizedUser.providerId,
                     email: normalizedUser.email,
                     name: normalizedUser.name,
-                    avatarurl: normalizedUser.avatarurl,
+                    avatarUrl: normalizedUser.avatarUrl,
                     providerData: userData,
-                    accesstoken,
-                    //refreshtoken: tokenData.refresh_token,
+                    accessToken,
+                    //refreshToken: tokenData.refresh_token,
                 },
             });
         }
@@ -345,9 +345,9 @@ router.get("/oauth/:provider/callback", async (req, res) => {
         // 6. 重定向到前端根路径，携带JWT token
         const frontendBaseUrl = process.env.FRONTEND_URL || "http://localhost:5173";
         const callbackUrl = new URL(frontendBaseUrl);
-        callbackUrl.searchParams.append("access_token", tokens.accesstoken);
-        callbackUrl.searchParams.append("refresh_token", tokens.refreshtoken);
-        callbackUrl.searchParams.append("expires_in", tokens.accesstokenExpiresIn);
+        callbackUrl.searchParams.append("access_token", tokens.accessToken);
+        callbackUrl.searchParams.append("refresh_token", tokens.refreshToken);
+        callbackUrl.searchParams.append("expires_in", tokens.accessTokenExpiresIn);
         callbackUrl.searchParams.append("provider", provider);
         // 附带展示信息，便于前端显示品牌与名称
         const pconf = oauthProviders[provider] || {};
@@ -392,7 +392,7 @@ router.get("/profile", jwtAuth, async (req, res, next) => {
                         id: true,
                         uuid: true,
                         name: true,
-                        createdat: true,
+                        createdAt: true,
                     },
                 },
             },
@@ -421,9 +421,9 @@ router.get("/profile", jwtAuth, async (req, res, next) => {
                 providerInfo,
                 email: account.email,
                 name: account.name,
-                avatarurl: account.avatarurl,
+                avatarUrl: account.avatarUrl,
                 devices: account.devices,
-                createdat: account.createdat,
+                createdAt: account.createdAt,
             },
         });
     } catch (error) {
@@ -487,7 +487,7 @@ router.post("/devices/bind", jwtAuth, async (req, res, next) => {
             success: true,
             message: "设备绑定成功",
             data: {
-                deviceid: updatedDevice.id,
+                deviceId: updatedDevice.id,
                 uuid: updatedDevice.uuid,
                 name: updatedDevice.name,
             },
@@ -592,8 +592,8 @@ router.get("/devices", jwtAuth, async (req, res, next) => {
                         uuid: true,
                         name: true,
                         namespace: true,
-                        createdat: true,
-                        updatedat: true,
+                        createdAt: true,
+                        updatedAt: true,
                     },
                 },
             },
@@ -627,8 +627,8 @@ router.get("/device/:uuid/account", async (req, res, next) => {
                         id: true,
                         provider: true,
                         name: true,
-                        avatarurl: true,
-                        createdat: true,
+                        avatarUrl: true,
+                        createdAt: true,
                     },
                 },
             },
@@ -654,8 +654,8 @@ router.get("/device/:uuid/account", async (req, res, next) => {
                 id: device.account.id,
                 provider: device.account.provider,
                 name: device.account.name,
-                avatarurl: device.account.avatarurl,
-                bindTime: device.updatedat, // 绑定时间
+                avatarUrl: device.account.avatarUrl,
+                bindTime: device.updatedAt, // 绑定时间
             },
         });
     } catch (error) {
@@ -690,8 +690,8 @@ router.post("/refresh", async (req, res, next) => {
             success: true,
             message: "令牌刷新成功",
             data: {
-                access_token: result.accesstoken,
-                expires_in: result.accesstokenExpiresIn,
+                access_token: result.accessToken,
+                expires_in: result.accessTokenExpiresIn,
                 account: result.account,
             },
         });
@@ -780,14 +780,14 @@ router.get("/token-info", jwtAuth, async (req, res, next) => {
             data: {
                 accountId: account.id,
                 tokenType: decoded.type || 'legacy',
-                tokenversion: decoded.tokenversion || account.tokenversion,
+                tokenVersion: decoded.tokenVersion || account.tokenVersion,
                 issuedAt: new Date(decoded.iat * 1000),
                 expiresAt: new Date(decoded.exp * 1000),
                 expiresIn: expiresIn,
                 isExpired: expiresIn <= 0,
                 isLegacyToken: res.locals.isLegacyToken || false,
-                hasRefreshToken: !!account.refreshtoken,
-                refreshtokenExpiry: account.refreshtokenExpiry,
+                hasRefreshToken: !!account.refreshToken,
+                refreshTokenExpiry: account.refreshTokenExpiry,
             },
         });
     } catch (error) {

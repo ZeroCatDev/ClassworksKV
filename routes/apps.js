@@ -1,9 +1,9 @@
 import {Router} from "express";
 import {uuidAuth} from "../middleware/uuidAuth.js";
-import {prisma} from "../utils/prisma.js";
 import crypto from "crypto";
 import errors from "../utils/errors.js";
 import {verifyDevicePassword} from "../utils/crypto.js";
+import { prisma } from "../utils/prisma.js";
 
 const router = Router();
 
@@ -25,15 +25,15 @@ router.get(
             return next(errors.createError(404, "设备不存在"));
         }
 
-        const installations = await prisma.appinstall.findMany({
-            where: {deviceid: device.id},
+        const installations = await prisma.appInstall.findMany({
+            where: {deviceId: device.id},
         });
 
         const apps = installations.map(install => ({
             appId: install.appId,
             token: install.token,
             note: install.note,
-            installedAt: install.createdat,
+            installedAt: install.createdAt,
         }));
 
         return res.json({
@@ -60,9 +60,9 @@ router.post(
         const token = crypto.randomBytes(32).toString("hex");
 
         // 创建安装记录
-        const installation = await prisma.appinstall.create({
+        const installation = await prisma.appInstall.create({
             data: {
-                deviceid: device.id,
+                deviceId: device.id,
                 appId: appId,
                 token,
                 note: note || null,
@@ -75,7 +75,7 @@ router.post(
             token: installation.token,
             note: installation.note,
             name: installation.note, // 备注同时作为名称返回
-            installedAt: installation.createdat,
+            installedAt: installation.createdAt,
         });
     })
 );
@@ -91,7 +91,7 @@ router.delete(
         const device = res.locals.device;
         const {installId} = req.params;
 
-        const installation = await prisma.appinstall.findUnique({
+        const installation = await prisma.appInstall.findUnique({
             where: {id: installId},
         });
 
@@ -100,11 +100,11 @@ router.delete(
         }
 
         // 确保安装记录属于当前设备
-        if (installation.deviceid !== device.id) {
+        if (installation.deviceId !== device.id) {
             return next(errors.createError(403, "无权操作此安装记录"));
         }
 
-        await prisma.appinstall.delete({
+        await prisma.appInstall.delete({
             where: {id: installation.id},
         });
 
@@ -135,8 +135,8 @@ router.get(
         }
 
         // 获取该设备的所有应用安装记录（即token）
-        const installations = await prisma.appinstall.findMany({
-            where: {deviceid: device.id},
+        const installations = await prisma.appInstall.findMany({
+            where: {deviceId: device.id},
             orderBy: {installedAt: 'desc'},
         });
 
@@ -179,7 +179,7 @@ router.post(
         const device = await prisma.device.findUnique({
             where: {namespace},
             include: {
-                autoauths: true,
+                autoAuths: true,
             },
         });
 
@@ -193,11 +193,11 @@ router.post(
         // 如果提供了密码，查找匹配密码的自动授权
         if (password) {
             // 首先尝试直接匹配明文密码
-            matchedAutoAuth = device.autoauths.find(auth => auth.password === password);
+            matchedAutoAuth = device.autoAuths.find(auth => auth.password === password);
 
             // 如果没有匹配到，尝试验证哈希密码（向后兼容）
             if (!matchedAutoAuth) {
-                for (const autoAuth of device.autoauths) {
+                for (const autoAuth of device.autoAuths) {
                     if (autoAuth.password && autoAuth.password.startsWith('$2')) { // bcrypt 哈希以 $2 开头
                         try {
                             if (await verifyDevicePassword(password, autoAuth.password)) {
@@ -225,7 +225,7 @@ router.post(
             }
         } else {
             // 如果没有提供密码，查找密码为空的自动授权
-            matchedAutoAuth = device.autoauths.find(auth => !auth.password);
+            matchedAutoAuth = device.autoAuths.find(auth => !auth.password);
 
             if (!matchedAutoAuth) {
                 return next(errors.createError(401, "需要提供密码"));
@@ -235,22 +235,22 @@ router.post(
         // 根据自动授权配置创建 AppInstall
         const token = crypto.randomBytes(32).toString("hex");
 
-        const installation = await prisma.appinstall.create({
+        const installation = await prisma.appInstall.create({
             data: {
-                deviceid: device.id,
+                deviceId: device.id,
                 appId: appId,
                 token,
                 note: null,
-                isreadonly: matchedAutoAuth.isreadonly,
-                devicetype: matchedAutoAuth.devicetype,
+                isReadOnly: matchedAutoAuth.isReadOnly,
+                deviceType: matchedAutoAuth.deviceType,
             },
         });
 
         return res.status(201).json({
             success: true,
             token: installation.token,
-            devicetype: installation.devicetype,
-            isreadonly: installation.isreadonly,
+            deviceType: installation.deviceType,
+            isReadOnly: installation.isReadOnly,
             installedAt: installation.installedAt,
         });
     })
@@ -272,7 +272,7 @@ router.post(
         }
 
         // 查找 token 对应的应用安装记录
-        const appInstall = await prisma.appinstall.findUnique({
+        const appInstall = await prisma.appInstall.findUnique({
             where: {token},
             include: {
                 device: true,
@@ -284,15 +284,15 @@ router.post(
         }
 
         // 验证 token 类型是否为 student
-        if (!['student', 'parent'].includes(appInstall.devicetype)) {
+        if (!['student', 'parent'].includes(appInstall.deviceType)) {
             return next(errors.createError(403, "只有学生和家长类型的 token 可以设置名称"));
         }
 
         // 读取设备的 classworks-list-main 键值
-        const kvRecord = await prisma.kvstore.findUnique({
+        const kvRecord = await prisma.kVStore.findUnique({
             where: {
-                deviceid_key: {
-                    deviceid: appInstall.deviceid,
+                deviceId_key: {
+                    deviceId: appInstall.deviceId,
                     key: 'classworks-list-main',
                 },
             },
@@ -321,17 +321,17 @@ router.post(
         }
 
         // 更新 AppInstall 的 note 字段
-        const updatedInstall = await prisma.appinstall.update({
+        const updatedInstall = await prisma.appInstall.update({
             where: {id: appInstall.id},
-            data: {note: appInstall.devicetype === 'parent' ? `${name} 家长` : name},
+            data: {note: appInstall.deviceType === 'parent' ? `${name} 家长` : name},
         });
 
         return res.json({
             success: true,
             token: updatedInstall.token,
             name: updatedInstall.note,
-            devicetype: updatedInstall.devicetype,
-            updatedat: updatedInstall.updatedat,
+            deviceType: updatedInstall.deviceType,
+            updatedAt: updatedInstall.updatedAt,
         });
     })
 );
@@ -352,7 +352,7 @@ router.post(
         }
 
         // 查找 token 对应的应用安装记录
-        const appInstall = await prisma.appinstall.findUnique({
+        const appInstall = await prisma.appInstall.findUnique({
             where: {token},
             include: {
                 device: true,
@@ -364,12 +364,12 @@ router.post(
         }
 
         // 验证 token 类型是否为 teacher
-        if (appInstall.devicetype !== 'teacher') {
+        if (appInstall.deviceType !== 'teacher') {
             return next(errors.createError(403, "只有教师类型的 token 可以使用此接口"));
         }
 
         // 更新 AppInstall 的 note 字段为教师名称
-        const updatedInstall = await prisma.appinstall.update({
+        const updatedInstall = await prisma.appInstall.update({
             where: {id: appInstall.id},
             data: {note: name},
         });
@@ -378,8 +378,8 @@ router.post(
             success: true,
             token: updatedInstall.token,
             name: updatedInstall.note,
-            devicetype: updatedInstall.devicetype,
-            updatedat: updatedInstall.updatedat,
+            deviceType: updatedInstall.deviceType,
+            updatedAt: updatedInstall.updatedAt,
         });
     })
 );
@@ -396,7 +396,7 @@ router.put(
         const {note} = req.body;
 
         // 查找 token 对应的应用安装记录
-        const appInstall = await prisma.appinstall.findUnique({
+        const appInstall = await prisma.appInstall.findUnique({
             where: {token},
         });
 
@@ -405,7 +405,7 @@ router.put(
         }
 
         // 更新 AppInstall 的 note 字段
-        const updatedInstall = await prisma.appinstall.update({
+        const updatedInstall = await prisma.appInstall.update({
             where: {id: appInstall.id},
             data: {note: note || null},
         });
@@ -414,7 +414,7 @@ router.put(
             success: true,
             token: updatedInstall.token,
             note: updatedInstall.note,
-            updatedat: updatedInstall.updatedat,
+            updatedAt: updatedInstall.updatedAt,
         });
     })
 );

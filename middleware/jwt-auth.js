@@ -8,8 +8,8 @@
 
 import {generateAccessToken, validateAccountToken, verifyAccessToken} from "../utils/tokenManager.js";
 import {verifyToken} from "../utils/jwt.js";
-import {prisma} from "../utils/prisma.js";
 import errors from "../utils/errors.js";
+import { prisma } from "../utils/prisma.js";
 
 /**
  * 新的JWT认证中间件（支持refresh token系统）

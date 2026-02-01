@@ -1,7 +1,7 @@
 import {Router} from "express";
 import deviceCodeStore from "../utils/deviceCodeStore.js";
 import errors from "../utils/errors.js";
-import {prisma} from "../utils/prisma.js";
+import { prisma } from "../utils/prisma.js";
 
 const router = Router();
 
@@ -62,7 +62,7 @@ router.post(
         }
 
         // 验证token是否有效（检查数据库）
-        const appInstall = await prisma.appinstall.findUnique({
+        const appInstall = await prisma.appInstall.findUnique({
             where: {token},
         });
 
@@ -193,7 +193,7 @@ router.get(
             exists: true,
             has_token: status.hasToken,
             expires_in: Math.floor((status.expiresAt - Date.now()) / 1000),
-            created_at: status.createdat,
+            created_at: status.createdAt,
         });
     })
 );

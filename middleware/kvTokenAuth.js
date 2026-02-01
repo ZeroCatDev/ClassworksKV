@@ -4,9 +4,8 @@
  * 仅验证app token，设置设备和应用信息到res.locals
  * 适用于所有KV相关的接口
  */
-
-import {prisma} from "../utils/prisma.js";
 import errors from "../utils/errors.js";
+import { prisma } from "../utils/prisma.js";
 
 /**
  * KV Token认证中间件
@@ -22,7 +21,7 @@ export const kvTokenAuth = async (req, res, next) => {
         }
 
         // 查找token对应的应用安装信息
-        const appInstall = await prisma.appinstall.findUnique({
+        const appInstall = await prisma.appInstall.findUnique({
             where: {token},
             include: {
                 device: true,
@@ -36,7 +35,7 @@ export const kvTokenAuth = async (req, res, next) => {
         // 将信息存储到res.locals供后续使用
         res.locals.device = appInstall.device;
         res.locals.appInstall = appInstall;
-        res.locals.deviceid = appInstall.device.id;
+        res.locals.deviceId = appInstall.device.id;
         res.locals.token = token;
         next();
     } catch (error) {

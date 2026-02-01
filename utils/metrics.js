@@ -33,9 +33,8 @@ export async function initializeMetrics() {
         registeredDevicesTotal.set(deviceCount);
 
         // 获取已创建键总数
-        const keyCount = await prisma.kvstore.count();
+        const keyCount = await prisma.kVStore.count();
         keysTotal.set(keyCount);
-
         console.log('Prometheus metrics initialized - Devices:', deviceCount, 'Keys:', keyCount);
     } catch (error) {
         console.error('Failed to initialize metrics:', error);

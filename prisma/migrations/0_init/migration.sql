@@ -2,109 +2,109 @@
 CREATE SCHEMA IF NOT EXISTS "public";
 
 -- CreateTable
-CREATE TABLE "account" (
+CREATE TABLE "Account" (
     "id" VARCHAR(191) NOT NULL,
     "provider" VARCHAR(191) NOT NULL,
-    "providerid" VARCHAR(191) NOT NULL,
+    "providerId" VARCHAR(191) NOT NULL,
     "email" VARCHAR(191),
     "name" VARCHAR(191),
-    "avatarurl" VARCHAR(191),
-    "providerdata" JSON,
-    "accesstoken" TEXT,
-    "createdat" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedat" TIMESTAMPTZ(6) NOT NULL,
-    "refreshtoken" TEXT,
-    "refreshtokenexpiry" TIMESTAMPTZ(6),
-    "tokenversion" INTEGER NOT NULL DEFAULT 1,
+    "avatarUrl" VARCHAR(191),
+    "providerData" JSON,
+    "accessToken" TEXT,
+    "createdAt" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMPTZ(6) NOT NULL,
+    "refreshToken" TEXT,
+    "refreshTokenExpiry" TIMESTAMPTZ(6),
+    "tokenVersion" INTEGER NOT NULL DEFAULT 1,
 
-    CONSTRAINT "idx_18048_primary" PRIMARY KEY ("id")
+    CONSTRAINT "idx_18303_PRIMARY" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "appinstall" (
+CREATE TABLE "AppInstall" (
     "id" VARCHAR(191) NOT NULL,
-    "deviceid" INTEGER NOT NULL,
-    "appid" VARCHAR(191) NOT NULL,
+    "deviceId" INTEGER NOT NULL,
+    "appId" VARCHAR(191) NOT NULL,
     "token" VARCHAR(191) NOT NULL,
     "note" VARCHAR(191),
-    "installedat" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedat" TIMESTAMPTZ(6) NOT NULL,
-    "devicetype" VARCHAR(191),
-    "isreadonly" BOOLEAN NOT NULL DEFAULT false,
+    "installedAt" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMPTZ(6) NOT NULL,
+    "deviceType" VARCHAR(191),
+    "isReadOnly" BOOLEAN NOT NULL DEFAULT false,
 
-    CONSTRAINT "idx_18055_primary" PRIMARY KEY ("id")
+    CONSTRAINT "idx_18310_PRIMARY" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "autoauth" (
+CREATE TABLE "AutoAuth" (
     "id" VARCHAR(191) NOT NULL,
-    "deviceid" INTEGER NOT NULL,
+    "deviceId" INTEGER NOT NULL,
     "password" VARCHAR(191),
-    "devicetype" VARCHAR(191),
-    "isreadonly" BOOLEAN NOT NULL DEFAULT false,
-    "createdat" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedat" TIMESTAMPTZ(6) NOT NULL,
+    "deviceType" VARCHAR(191),
+    "isReadOnly" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMPTZ(6) NOT NULL,
 
-    CONSTRAINT "idx_18062_primary" PRIMARY KEY ("id")
+    CONSTRAINT "idx_18317_PRIMARY" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "device" (
+CREATE TABLE "Device" (
     "id" INTEGER NOT NULL,
     "uuid" VARCHAR(191) NOT NULL,
     "name" VARCHAR(191),
-    "accountid" VARCHAR(191),
-    "createdat" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedat" TIMESTAMPTZ(6) NOT NULL,
+    "accountId" VARCHAR(191),
+    "createdAt" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMPTZ(6) NOT NULL,
     "password" VARCHAR(191),
-    "passwordhint" VARCHAR(191),
+    "passwordHint" VARCHAR(191),
     "namespace" VARCHAR(191),
 
-    CONSTRAINT "idx_18069_primary" PRIMARY KEY ("id")
+    CONSTRAINT "idx_18324_PRIMARY" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "kvstore" (
-    "deviceid" INTEGER NOT NULL,
+CREATE TABLE "KVStore" (
+    "deviceId" INTEGER NOT NULL,
     "key" VARCHAR(191) NOT NULL,
     "value" JSON NOT NULL,
-    "creatorip" VARCHAR(191) DEFAULT '',
-    "createdat" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedat" TIMESTAMPTZ(6) NOT NULL,
+    "creatorIp" VARCHAR(191) DEFAULT '',
+    "createdAt" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMPTZ(6) NOT NULL,
 
-    CONSTRAINT "idx_18075_primary" PRIMARY KEY ("deviceid","key")
+    CONSTRAINT "idx_18330_PRIMARY" PRIMARY KEY ("deviceId","key")
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "idx_18048_account_provider_providerid_key" ON "account"("provider", "providerid");
+CREATE UNIQUE INDEX "idx_18303_Account_provider_providerId_key" ON "Account"("provider", "providerId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "idx_18055_appinstall_token_key" ON "appinstall"("token");
+CREATE UNIQUE INDEX "idx_18310_AppInstall_token_key" ON "AppInstall"("token");
 
 -- CreateIndex
-CREATE INDEX "idx_18055_appinstall_deviceid_fkey" ON "appinstall"("deviceid");
+CREATE INDEX "idx_18310_AppInstall_deviceId_fkey" ON "AppInstall"("deviceId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "idx_18062_autoauth_deviceid_password_key" ON "autoauth"("deviceid", "password");
+CREATE UNIQUE INDEX "idx_18317_AutoAuth_deviceId_password_key" ON "AutoAuth"("deviceId", "password");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "idx_18069_device_uuid_key" ON "device"("uuid");
+CREATE UNIQUE INDEX "idx_18324_Device_uuid_key" ON "Device"("uuid");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "idx_18069_device_namespace_key" ON "device"("namespace");
+CREATE UNIQUE INDEX "idx_18324_Device_namespace_key" ON "Device"("namespace");
 
 -- CreateIndex
-CREATE INDEX "idx_18069_device_accountid_fkey" ON "device"("accountid");
+CREATE INDEX "idx_18324_Device_accountId_fkey" ON "Device"("accountId");
 
 -- AddForeignKey
-ALTER TABLE "appinstall" ADD CONSTRAINT "appinstall_deviceid_fkey" FOREIGN KEY ("deviceid") REFERENCES "device"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "AppInstall" ADD CONSTRAINT "AppInstall_deviceId_fkey" FOREIGN KEY ("deviceId") REFERENCES "Device"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "autoauth" ADD CONSTRAINT "autoauth_deviceid_fkey" FOREIGN KEY ("deviceid") REFERENCES "device"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "AutoAuth" ADD CONSTRAINT "AutoAuth_deviceId_fkey" FOREIGN KEY ("deviceId") REFERENCES "Device"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "device" ADD CONSTRAINT "device_accountid_fkey" FOREIGN KEY ("accountid") REFERENCES "account"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Device" ADD CONSTRAINT "Device_accountId_fkey" FOREIGN KEY ("accountId") REFERENCES "Account"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "kvstore" ADD CONSTRAINT "kvstore_deviceid_fkey" FOREIGN KEY ("deviceid") REFERENCES "device"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "KVStore" ADD CONSTRAINT "KVStore_deviceId_fkey" FOREIGN KEY ("deviceId") REFERENCES "Device"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 

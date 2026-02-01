@@ -5,11 +5,10 @@
  * 2. 验证密码或账户JWT（二选一）
  * 3. 适用于需要设备上下文的接口
  */
-
-import {prisma} from "../utils/prisma.js";
 import errors from "../utils/errors.js";
 import {verifyToken as verifyAccountJWT} from "../utils/jwt.js";
 import {verifyDevicePassword} from "../utils/crypto.js";
+import { prisma } from "../utils/prisma.js";
 
 /**
  * UUID+密码/JWT混合认证中间件
@@ -33,7 +32,7 @@ export const uuidAuth = async (req, res, next) => {
 
         // 存储设备信息到locals
         res.locals.device = device;
-        res.locals.deviceid = device.id;
+        res.locals.deviceId = device.id;
 
         // 3. 验证密码或JWT（二选一）
         const password = extractPassword(req);
@@ -104,7 +103,7 @@ export const extractDeviceInfo = async (req, res, next) => {
         throw errors.createError(404, "设备不存在");
     }
     res.locals.device = device;
-    res.locals.deviceid = device.id;
+    res.locals.deviceId = device.id;
     next();
 }
 

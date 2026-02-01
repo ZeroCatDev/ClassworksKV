@@ -13,10 +13,10 @@
  */
 
 import { Server } from "socket.io";
-import { prisma } from "./prisma.js";
 import { onlineDevicesGauge } from "./metrics.js";
 import DeviceDetector from "node-device-detector";
 import ClientHints from "node-device-detector/client-hints.js";
+import { prisma } from "./prisma.js";
 
 // Socket.IO 单例实例
 let io = null;
@@ -33,7 +33,7 @@ const clientHints = new ClientHints();
 const onlineMap = new Map();
 // 在线 token 映射：token -> Set<socketId> (用于指标统计)
 const onlineTokens = new Map();
-// 令牌信息缓存：token -> {appId, isreadonly, devicetype, note, deviceUuid, deviceName}
+// 令牌信息缓存：token -> {appId, isReadOnly, deviceType, note, deviceUuid, deviceName}
 const tokenInfoCache = new Map();
 // 事件历史记录：每个设备最多保存1000条事件记录
 const eventHistory = new Map(); // uuid -> Array<EventRecord>
@@ -132,7 +132,7 @@ export function initSocket(server) {
             try {
                 const token = payload?.token || payload?.apptoken;
                 if (typeof token !== "string" || token.length === 0) return;
-                const appInstall = await prisma.appinstall.findUnique({
+                const appInstall = await prisma.appInstall.findUnique({
                     where: { token },
                     include: { device: { select: { uuid: true } } },
                 });
@@ -175,9 +175,9 @@ export function initSocket(server) {
                     devices: historyData,
                     timestamp: new Date().toISOString(),
                     requestedBy: {
-                        devicetype: socket.data.tokenInfo?.devicetype,
+                        deviceType: socket.data.tokenInfo?.deviceType,
                         deviceName: socket.data.tokenInfo?.deviceName,
-                        isreadonly: socket.data.tokenInfo?.isreadonly
+                        isReadOnly: socket.data.tokenInfo?.isReadOnly
                     }
                 });
 
@@ -219,7 +219,7 @@ export function initSocket(server) {
 
                 // 检查只读权限
                 const tokenInfo = socket.data.tokenInfo;
-                if (tokenInfo?.isreadonly) {
+                if (tokenInfo?.isReadOnly) {
                     socket.emit("event-error", { reason: "readonly_token_cannot_send_events" });
                     return;
                 }
@@ -243,9 +243,9 @@ export function initSocket(server) {
                     senderId: socket.id,
                     senderInfo: {
                         appId: tokenInfo?.appId,
-                        devicetype: tokenInfo?.devicetype,
+                        deviceType: tokenInfo?.deviceType,
                         deviceName: tokenInfo?.note,
-                        isreadonly: tokenInfo?.isreadonly || false,
+                        isReadOnly: tokenInfo?.isReadOnly || false,
                         note: tokenInfo?.note
                     }
                 };
@@ -385,7 +385,7 @@ function removeTokenConnection(token, socketId) {
 /**
  * 广播某设备下 KV 键已变更
  * @param {string} uuid 设备 uuid
- * @param {object} payload { key, action: 'upsert'|'delete'|'batch', updatedat?, created? }
+ * @param {object} payload { key, action: 'upsert'|'delete'|'batch', updatedAt?, created? }
  */
 export function broadcastKeyChanged(uuid, payload) {
     if (!io || !uuid) return;
@@ -400,9 +400,9 @@ export function broadcastKeyChanged(uuid, payload) {
         senderId: "realtime",
         senderInfo: {
             appId: "5c2a54d553951a37b47066ead68c8642",
-            devicetype: "server",
+            deviceType: "server",
             deviceName: "realtime",
-            isreadonly: false,
+            isReadOnly: false,
             note: "Database realtime sync"
         }
     };
@@ -443,9 +443,9 @@ export function broadcastDeviceEvent(uuid, type, content = null, senderId = "sys
         senderId,
         senderInfo: {
             appId: "system",
-            devicetype: "system",
+            deviceType: "system",
             deviceName: "System",
-            isreadonly: false,
+            isReadOnly: false,
             note: "System broadcast"
         }
     };
@@ -549,7 +549,7 @@ export default {
  */
 async function joinByToken(socket, token) {
     try {
-        const appInstall = await prisma.appinstall.findUnique({
+        const appInstall = await prisma.appInstall.findUnique({
             where: { token },
             include: {
                 device: {
@@ -576,8 +576,8 @@ async function joinByToken(socket, token) {
             // 缓存令牌信息，使用拼接后的设备名称
             const tokenInfo = {
                 appId: appInstall.appId,
-                isreadonly: appInstall.isreadonly,
-                devicetype: appInstall.devicetype,
+                isReadOnly: appInstall.isReadOnly,
+                deviceType: appInstall.deviceType,
                 note: appInstall.note,
                 deviceUuid: uuid,
                 deviceName: finalDeviceName, // 使用拼接后的设备名称
@@ -600,8 +600,8 @@ async function joinByToken(socket, token) {
                 uuid,
                 token,
                 tokenInfo: {
-                    isreadonly: tokenInfo.isreadonly,
-                    devicetype: tokenInfo.devicetype,
+                    isReadOnly: tokenInfo.isReadOnly,
+                    deviceType: tokenInfo.deviceType,
                     deviceName: tokenInfo.deviceName,
                     userAgent: userAgent
                 }

@@ -6,25 +6,24 @@
  * 2. deviceInfoMiddleware - 仅获取设备信息，不创建新设备
  * 3. passwordMiddleware - 验证设备密码
  */
-
-import {prisma} from "../utils/prisma.js";
 import errors from "../utils/errors.js";
 import {verifyDevicePassword} from "../utils/crypto.js";
 import {analyzeDevice} from "../utils/deviceDetector.js";
+import { prisma } from "../utils/prisma.js";
 
 /**
  * 为新设备创建默认的自动登录配置
- * @param {number} deviceid - 设备ID
+ * @param {number} deviceId - 设备ID
  */
-async function createDefaultAutoAuth(deviceid) {
+async function createDefaultAutoAuth(deviceId) {
     try {
         // 创建默认的自动授权配置：不需要密码、类型是classroom（一体机）
         await prisma.autoAuth.create({
             data: {
-                deviceid: deviceid,
+                deviceId: deviceId,
                 password: null, // 无密码
-                devicetype: "classroom", // 一体机类型
-                isreadonly: false, // 非只读
+                deviceType: "classroom", // 一体机类型
+                isReadOnly: false, // 非只读
             },
         });
     } catch (error) {
@@ -59,7 +58,7 @@ export const deviceMiddleware = errors.catchAsync(async (req, res, next) => {
     if (!device) {
         // 设备不存在，自动创建并生成智能设备名称
         const userAgent = req.headers['user-agent'];
-        const customDeviceType = req.body.devicetype || req.query.devicetype;
+        const customDeviceType = req.body.deviceType || req.query.deviceType;
         const note = req.body.note || req.query.note;
 
         // 生成设备名称，确保不为空
@@ -70,7 +69,7 @@ export const deviceMiddleware = errors.catchAsync(async (req, res, next) => {
                 uuid: deviceUuid,
                 name: deviceName,
                 password: null,
-                passwordhint: null,
+                passwordHint: null,
                 accountId: null,
             },
         });

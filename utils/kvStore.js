@@ -1,18 +1,18 @@
-import {prisma} from "./prisma.js";
 import {keysTotal} from "./metrics.js";
+import { prisma } from "./prisma.js";
 
 class KVStore {
     /**
      * 通过设备ID和键名获取值
-     * @param {number} deviceid - 设备ID
+     * @param {number} deviceId - 设备ID
      * @param {string} key - 键名
      * @returns {object|null} 键对应的值或null
      */
-    async get(deviceid, key) {
-        const item = await prisma.kvstore.findUnique({
+    async get(deviceId, key) {
+        const item = await prisma.kVStore.findUnique({
             where: {
-                deviceid_key: {
-                    deviceid: deviceid,
+                deviceId_key: {
+                    deviceId: deviceId,
                     key: key,
                 },
             },
@@ -22,24 +22,24 @@ class KVStore {
 
     /**
      * 获取键的完整信息（包括元数据）
-     * @param {number} deviceid - 设备ID
+     * @param {number} deviceId - 设备ID
      * @param {string} key - 键名
      * @returns {object|null} 键的完整信息或null
      */
-    async getMetadata(deviceid, key) {
-        const item = await prisma.kvstore.findUnique({
+    async getMetadata(deviceId, key) {
+        const item = await prisma.kVStore.findUnique({
             where: {
-                deviceid_key: {
-                    deviceid: deviceid,
+                deviceId_key: {
+                    deviceId: deviceId,
                     key: key,
                 },
             },
             select: {
                 key: true,
-                deviceid: true,
-                creatorip: true,
-                createdat: true,
-                updatedat: true,
+                deviceId: true,
+                creatorIp: true,
+                createdAt: true,
+                updatedAt: true,
             },
         });
 
@@ -47,67 +47,67 @@ class KVStore {
 
         // 转换为更友好的格式
         return {
-            deviceid: item.deviceid,
+            deviceId: item.deviceId,
             key: item.key,
             metadata: {
-                creatorip: item.creatorip,
-                createdat: item.createdat,
-                updatedat: item.updatedat,
+                creatorIp: item.creatorIp,
+                createdAt: item.createdAt,
+                updatedAt: item.updatedAt,
             },
         };
     }
 
     /**
      * 在指定设备下创建或更新键值
-     * @param {number} deviceid - 设备ID
+     * @param {number} deviceId - 设备ID
      * @param {string} key - 键名
      * @param {object} value - 键值
-     * @param {string} creatorip - 创建者IP，可选
+     * @param {string} creatorIp - 创建者IP，可选
      * @returns {object} 创建或更新的记录
      */
-    async upsert(deviceid, key, value, creatorip = "") {
-        const item = await prisma.kvstore.upsert({
+    async upsert(deviceId, key, value, creatorIp = "") {
+        const item = await prisma.kVStore.upsert({
             where: {
-                deviceid_key: {
-                    deviceid: deviceid,
+                deviceId_key: {
+                    deviceId: deviceId,
                     key: key,
                 },
             },
             update: {
                 value,
-                ...(creatorip && {creatorip}),
+                ...(creatorIp && {creatorIp}),
             },
             create: {
-                deviceid: deviceid,
+                deviceId: deviceId,
                 key: key,
                 value,
-                creatorip: creatorip,
+                creatorIp,
             },
         });
 
         // 更新键总数指标
-        const totalKeys = await prisma.kvstore.count();
+        const totalKeys = await prisma.kVStore.count();
         keysTotal.set(totalKeys);
 
         // 返回带有设备ID和原始键的结果
         return {
-            deviceid,
+            deviceId,
             key,
             value: item.value,
-            creatorip: item.creatorip,
-            createdat: item.createdat,
-            updatedat: item.updatedat,
+            creatorIp: item.creatorIp,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt,
         };
     }
 
     /**
      * 批量创建或更新键值对（优化性能）
-     * @param {number} deviceid - 设备ID
+     * @param {number} deviceId - 设备ID
      * @param {object} data - 键值对数据 {key1: value1, key2: value2, ...}
-     * @param {string} creatorip - 创建者IP，可选
+     * @param {string} creatorIp - 创建者IP，可选
      * @returns {object} {results: Array, errors: Array}
      */
-    async batchUpsert(deviceid, data, creatorip = "") {
+    async batchUpsert(deviceId, data, creatorIp = "") {
         const results = [];
         const errors = [];
 
@@ -115,30 +115,30 @@ class KVStore {
         await prisma.$transaction(async (tx) => {
             for (const [key, value] of Object.entries(data)) {
                 try {
-                    const item = await tx.kvstore.upsert({
+                    const item = await tx.kVStore.upsert({
                         where: {
-                            deviceid_key: {
-                                deviceid: deviceid,
+                            deviceId_key: {
+                                deviceId: deviceId,
                                 key: key,
                             },
                         },
                         update: {
                             value,
-                            ...(creatorip && {creatorip: creatorip}),
+                            ...(creatorIp && {creatorIp}),
                         },
                         create: {
-                            deviceid: deviceid,
+                            deviceId: deviceId,
                             key: key,
                             value,
-                            creatorip: creatorip,
+                            creatorIp,
                         },
                     });
 
                     results.push({
                         key: item.key,
-                        created: item.createdat.getTime() === item.updatedat.getTime(),
-                        createdat: item.createdat,
-                        updatedat: item.updatedat,
+                        created: item.createdAt.getTime() === item.updatedAt.getTime(),
+                        createdAt: item.createdAt,
+                        updatedAt: item.updatedAt,
                     });
                 } catch (error) {
                     errors.push({
@@ -150,7 +150,7 @@ class KVStore {
         });
 
         // 在事务完成后，一次性更新指标
-        const totalKeys = await prisma.kvstore.count();
+        const totalKeys = await prisma.kVStore.count();
         keysTotal.set(totalKeys);
 
         return { results, errors };
@@ -158,26 +158,26 @@ class KVStore {
 
     /**
      * 通过设备ID和键名删除
-     * @param {number} deviceid - 设备ID
+     * @param {number} deviceId - 设备ID
      * @param {string} key - 键名
      * @returns {object|null} 删除的记录或null
      */
-    async delete(deviceid, key) {
+    async delete(deviceId, key) {
         try {
-            const item = await prisma.kvstore.delete({
+            const item = await prisma.kVStore.delete({
                 where: {
-                    deviceid_key: {
-                        deviceid: deviceid,
+                    deviceId_key: {
+                        deviceId: deviceId,
                         key: key,
                     },
                 },
             });
 
             // 更新键总数指标
-            const totalKeys = await prisma.kvstore.count();
+            const totalKeys = await prisma.kVStore.count();
             keysTotal.set(totalKeys);
 
-            return item ? {...item, deviceid, key} : null;
+            return item ? {...item, deviceId, key} : null;
         } catch (error) {
             // 忽略记录不存在的错误
             if (error.code === "P2025") {
@@ -189,11 +189,11 @@ class KVStore {
 
     /**
      * 列出指定设备下的所有键名及其元数据
-     * @param {number} deviceid - 设备ID
+     * @param {number} deviceId - 设备ID
      * @param {object} options - 选项参数
      * @returns {Array} 键名和元数据数组
      */
-    async list(deviceid, options = {}) {
+    async list(deviceId, options = {}) {
         const {sortBy = "key", sortDir = "asc", limit = 100, skip = 0} = options;
 
         // 构建排序条件
@@ -201,16 +201,16 @@ class KVStore {
         orderBy[sortBy] = sortDir.toLowerCase();
 
         // 查询设备的所有键
-        const items = await prisma.kvstore.findMany({
+        const items = await prisma.kVStore.findMany({
             where: {
-                deviceid: deviceid,
+                deviceId: deviceId,
             },
             select: {
-                deviceid: true,
+                deviceId: true,
                 key: true,
-                creatorip: true,
-                createdat: true,
-                updatedat: true,
+                creatorIp: true,
+                createdAt: true,
+                updatedAt: true,
                 value: false,
             },
             orderBy,
@@ -220,23 +220,23 @@ class KVStore {
 
         // 处理结果
         return items.map((item) => ({
-            deviceid: item.deviceid,
+            deviceId: item.deviceId,
             key: item.key,
             metadata: {
-                creatorip: item.creatorip,
-                createdat: item.createdat,
-                updatedat: item.updatedat,
+                creatorIp: item.creatorIp,
+                createdAt: item.createdAt,
+                updatedAt: item.updatedAt,
             },
         }));
     }
 
     /**
      * 获取指定设备下的键名列表（不包括内容）
-     * @param {number} deviceid - 设备ID
+     * @param {number} deviceId - 设备ID
      * @param {object} options - 查询选项
      * @returns {Array} 键名列表
      */
-    async listKeysOnly(deviceid, options = {}) {
+    async listKeysOnly(deviceId, options = {}) {
         const {sortBy = "key", sortDir = "asc", limit = 100, skip = 0} = options;
 
         // 构建排序条件
@@ -244,9 +244,9 @@ class KVStore {
         orderBy[sortBy] = sortDir.toLowerCase();
 
         // 查询设备的所有键，只选择键名
-        const items = await prisma.kvstore.findMany({
+        const items = await prisma.kVStore.findMany({
             where: {
-                deviceid: deviceid,
+                deviceId: deviceId,
             },
             select: {
                 key: true,
@@ -262,13 +262,13 @@ class KVStore {
 
     /**
      * 统计指定设备下的键值对数量
-     * @param {number} deviceid - 设备ID
+     * @param {number} deviceId - 设备ID
      * @returns {number} 键值对数量
      */
-    async count(deviceid) {
-        const count = await prisma.kvstore.count({
+    async count(deviceId) {
+        const count = await prisma.kVStore.count({
             where: {
-                deviceid: deviceid,
+                deviceId: deviceId,
             },
         });
         return count;
@@ -276,32 +276,32 @@ class KVStore {
 
     /**
      * 获取指定设备的统计信息
-     * @param {number} deviceid - 设备ID
+     * @param {number} deviceId - 设备ID
      * @returns {object} 统计信息
      */
-    async getStats(deviceid) {
+    async getStats(deviceId) {
         const [totalKeys, oldestKey, newestKey] = await Promise.all([
-            prisma.kvstore.count({
-                where: { deviceid },
+            prisma.kVStore.count({
+                where: { deviceId },
             }),
-            prisma.kvstore.findFirst({
-                where: { deviceid },
-                orderBy: { createdat: "asc" },
-                select: { createdat: true, key: true },
+            prisma.kVStore.findFirst({
+                where: { deviceId },
+                orderBy: { createdAt: "asc" },
+                select: { createdAt: true, key: true },
             }),
-            prisma.kvstore.findFirst({
-                where: { deviceid },
-                orderBy: { updatedat: "desc" },
-                select: { updatedat: true, key: true },
+            prisma.kVStore.findFirst({
+                where: { deviceId },
+                orderBy: { updatedAt: "desc" },
+                select: { updatedAt: true, key: true },
             }),
         ]);
 
         return {
             totalKeys,
             oldestKey: oldestKey?.key,
-            oldestCreatedAt: oldestKey?.createdat,
+            oldestCreatedAt: oldestKey?.createdAt,
             newestKey: newestKey?.key,
-            newestUpdatedAt: newestKey?.updatedat,
+            newestUpdatedAt: newestKey?.updatedAt,
         };
     }
 }

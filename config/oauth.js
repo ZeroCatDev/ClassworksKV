@@ -18,9 +18,9 @@ export const oauthProviders = {
     zerocat: {
         clientId: process.env.ZEROCAT_CLIENT_ID,
         clientSecret: process.env.ZEROCAT_CLIENT_SECRET,
-        authorizationURL: "https://api.zcservice.houlang.cloud/oauth/authorize",
-        tokenURL: "https://api.zcservice.houlang.cloud/oauth/token",
-        userInfoURL: "https://api.zcservice.houlang.cloud/oauth/userinfo",
+        authorizationURL: "https://zerocat-api.houlang.cloud/oauth/authorize",
+        tokenURL: "https://zerocat-api.houlang.cloud/oauth/token",
+        userInfoURL: "https://zerocat-api.houlang.cloud/oauth/userinfo",
         scope: "user:basic user:email",
         // 展示相关
         name: "ZeroCat",

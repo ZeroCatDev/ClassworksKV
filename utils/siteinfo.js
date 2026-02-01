@@ -1,5 +1,5 @@
-import {prisma} from "./prisma.js";
 import kvStore from "./kvStore.js";
+import { prisma } from "./prisma.js";
 
 // 系统保留UUID用于存储站点信息
 const SYSTEM_DEVICE_UUID = "00000000-0000-4000-8000-000000000000";
@@ -46,8 +46,8 @@ async function getSystemDeviceId() {
  */
 export const initReadme = async () => {
     try {
-        const deviceid = await getSystemDeviceId();
-        const storedValue = await kvStore.get(deviceid, "info");
+        const deviceId = await getSystemDeviceId();
+        const storedValue = await kvStore.get(deviceId, "info");
 
         // 合并默认值与存储值，确保结构完整
         readmeValue = {
@@ -82,8 +82,8 @@ export const getReadmeValue = () => {
  */
 export const updateReadmeValue = async (newValue) => {
     try {
-        const deviceid = await getSystemDeviceId();
-        await kvStore.upsert(deviceid, "info", newValue);
+        const deviceId = await getSystemDeviceId();
+        await kvStore.upsert(deviceId, "info", newValue);
         readmeValue = {
             ...defaultReadme,
             ...newValue,

@@ -1,7 +1,7 @@
 import {Router} from "express";
 import {jwtAuth} from "../middleware/jwt-auth.js";
-import {prisma} from "../utils/prisma.js";
 import errors from "../utils/errors.js";
+import { prisma } from "../utils/prisma.js";
 
 const router = Router();
 
@@ -30,13 +30,13 @@ router.get(
             return next(errors.createError(403, "该设备未绑定到您的账户"));
         }
 
-        const autoauths = await prisma.autoAuth.findMany({
-            where: {deviceid: device.id},
-            orderBy: {createdat: 'desc'},
+        const autoAuths = await prisma.autoAuth.findMany({
+            where: {deviceId: device.id},
+            orderBy: {createdAt: 'desc'},
         });
 
         // 返回配置，智能处理密码显示
-        const configs = autoauths.map(auth => {
+        const configs = autoAuths.map(auth => {
             // 检查是否是 bcrypt 哈希密码
             const isHashedPassword = auth.password && auth.password.startsWith('$2');
 
@@ -44,10 +44,10 @@ router.get(
                 id: auth.id,
                 password: isHashedPassword ? null : auth.password, // 哈希密码不返回
                 isLegacyHash: isHashedPassword, // 标记是否为旧的哈希密码
-                devicetype: auth.devicetype,
-                isreadonly: auth.isreadonly,
-                createdat: auth.createdat,
-                updatedat: auth.updatedat,
+                deviceType: auth.deviceType,
+                isReadOnly: auth.isReadOnly,
+                createdAt: auth.createdAt,
+                updatedAt: auth.updatedAt,
             };
         });
 
@@ -61,7 +61,7 @@ router.get(
 /**
  * POST /auto-auth/devices/:uuid/auth-configs
  * 创建新的自动授权配置 (需要 JWT 认证，且设备必须绑定到该账户)
- * Body: { password?: string, devicetype?: string, isreadonly?: boolean }
+ * Body: { password?: string, deviceType?: string, isReadOnly?: boolean }
  */
 router.post(
     "/devices/:uuid/auth-configs",
@@ -69,7 +69,7 @@ router.post(
     errors.catchAsync(async (req, res, next) => {
         const {uuid} = req.params;
         const account = res.locals.account;
-        const {password, devicetype, isreadonly} = req.body;
+        const {password, deviceType, isReadOnly} = req.body;
 
         // 查找设备并验证是否属于当前账户
         const device = await prisma.device.findUnique({
@@ -85,9 +85,9 @@ router.post(
             return next(errors.createError(403, "该设备未绑定到您的账户"));
         }
 
-        // 验证 devicetype 如果提供的话
+        // 验证 deviceType 如果提供的话
         const validDeviceTypes = ['teacher', 'student', 'classroom', 'parent'];
-        if (devicetype && !validDeviceTypes.includes(devicetype)) {
+        if (deviceType && !validDeviceTypes.includes(deviceType)) {
             return next(errors.createError(400, `设备类型必须是以下之一: ${validDeviceTypes.join(', ')}`));
         }
 
@@ -96,7 +96,7 @@ router.post(
 
         // 查询该设备的所有自动授权配置，本地检查是否存在相同密码
         const allAuths = await prisma.autoAuth.findMany({
-            where: {deviceid: device.id},
+            where: {deviceId: device.id},
         });
 
         const existingAuth = allAuths.find(auth => auth.password === plainPassword);
@@ -108,10 +108,10 @@ router.post(
         // 创建新的自动授权配置（密码明文存储）
         const autoAuth = await prisma.autoAuth.create({
             data: {
-                deviceid: device.id,
+                deviceId: device.id,
                 password: plainPassword,
-                devicetype: devicetype || null,
-                isreadonly: isreadonly || false,
+                deviceType: deviceType || null,
+                isReadOnly: isReadOnly || false,
             },
         });
 
@@ -120,9 +120,9 @@ router.post(
             config: {
                 id: autoAuth.id,
                 password: autoAuth.password, // 返回明文密码
-                devicetype: autoAuth.devicetype,
-                isreadonly: autoAuth.isreadonly,
-                createdat: autoAuth.createdat,
+                deviceType: autoAuth.deviceType,
+                isReadOnly: autoAuth.isReadOnly,
+                createdAt: autoAuth.createdAt,
             },
         });
     })
@@ -130,7 +130,7 @@ router.post(
 /**
  * PUT /auto-auth/devices/:uuid/auth-configs/:configId
  * 更新自动授权配置 (需要 JWT 认证，且设备必须绑定到该账户)
- * Body: { password?: string, devicetype?: string, isreadonly?: boolean }
+ * Body: { password?: string, deviceType?: string, isReadOnly?: boolean }
  */
 router.put(
     "/devices/:uuid/auth-configs/:configId",
@@ -138,7 +138,7 @@ router.put(
     errors.catchAsync(async (req, res, next) => {
         const {uuid, configId} = req.params;
         const account = res.locals.account;
-        const {password, devicetype, isreadonly} = req.body;
+        const {password, deviceType, isReadOnly} = req.body;
 
         // 查找设备并验证是否属于当前账户
         const device = await prisma.device.findUnique({
@@ -164,13 +164,13 @@ router.put(
         }
 
         // 确保配置属于当前设备
-        if (autoAuth.deviceid !== device.id) {
+        if (autoAuth.deviceId !== device.id) {
             return next(errors.createError(403, "无权操作此配置"));
         }
 
-        // 验证 devicetype
+        // 验证 deviceType
         const validDeviceTypes = ['teacher', 'student', 'classroom', 'parent'];
-        if (devicetype && !validDeviceTypes.includes(devicetype)) {
+        if (deviceType && !validDeviceTypes.includes(deviceType)) {
             return next(errors.createError(400, `设备类型必须是以下之一: ${validDeviceTypes.join(', ')}`));
         }
 
@@ -183,7 +183,7 @@ router.put(
 
             // 查询该设备的所有配置，本地检查新密码是否与其他配置冲突
             const allAuths = await prisma.autoAuth.findMany({
-                where: {deviceid: device.id},
+                where: {deviceId: device.id},
             });
 
             const conflictAuth = allAuths.find(auth =>
@@ -197,12 +197,12 @@ router.put(
             updateData.password = plainPassword;
         }
 
-        if (devicetype !== undefined) {
-            updateData.devicetype = devicetype || null;
+        if (deviceType !== undefined) {
+            updateData.deviceType = deviceType || null;
         }
 
-        if (isreadonly !== undefined) {
-            updateData.isreadonly = isreadonly;
+        if (isReadOnly !== undefined) {
+            updateData.isReadOnly = isReadOnly;
         }
 
         // 更新配置
@@ -216,9 +216,9 @@ router.put(
             config: {
                 id: updatedAuth.id,
                 password: updatedAuth.password, // 返回明文密码
-                devicetype: updatedAuth.devicetype,
-                isreadonly: updatedAuth.isreadonly,
-                updatedat: updatedAuth.updatedat,
+                deviceType: updatedAuth.deviceType,
+                isReadOnly: updatedAuth.isReadOnly,
+                updatedAt: updatedAuth.updatedAt,
             },
         });
     })
@@ -259,7 +259,7 @@ router.delete(
         }
 
         // 确保配置属于当前设备
-        if (autoAuth.deviceid !== device.id) {
+        if (autoAuth.deviceId !== device.id) {
             return next(errors.createError(403, "无权操作此配置"));
         }
 
@@ -334,7 +334,7 @@ router.put(
                 uuid: updatedDevice.uuid,
                 name: updatedDevice.name,
                 namespace: updatedDevice.namespace,
-                updatedat: updatedDevice.updatedat,
+                updatedAt: updatedDevice.updatedAt,
             },
         });
     })

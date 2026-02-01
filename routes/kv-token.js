@@ -28,11 +28,11 @@ router.get(
     "/_info",
     tokenReadLimiter,
     errors.catchAsync(async (req, res, next) => {
-        const deviceid = res.locals.deviceid;
+        const deviceId = res.locals.deviceId;
 
         // 获取设备信息，包含关联的账号
         const device = await prisma.device.findUnique({
-            where: { id: deviceid },
+            where: { id: deviceId },
             include: {
                 account: true,
             },
@@ -47,8 +47,8 @@ router.get(
             device: {
                 id: device.id,
                 name: device.name,
-                createdat: device.createdat,
-                updatedat: device.updatedat,
+                createdAt: device.createdAt,
+                updatedAt: device.updatedAt,
             },
         };
 
@@ -65,7 +65,7 @@ router.get(
             response.account = {
                 id: device.account.id,
                 name: device.account.name,
-                avatarurl: device.account.avatarurl,
+                avatarUrl: device.account.avatarUrl,
             };
         }
 
@@ -82,10 +82,10 @@ router.get(
     tokenReadLimiter,
     errors.catchAsync(async (req, res, next) => {
         const token = res.locals.token;
-        const deviceid = res.locals.deviceid;
+        const deviceId = res.locals.deviceId;
 
         // 查找当前 token 对应的应用安装记录
-        const appInstall = await prisma.appinstall.findUnique({
+        const appInstall = await prisma.appInstall.findUnique({
             where: { token },
             include: {
                 device: {
@@ -107,11 +107,11 @@ router.get(
             success: true,
             token: appInstall.token,
             appId: appInstall.appId,
-            devicetype: appInstall.devicetype,
-            isreadonly: appInstall.isreadonly,
+            deviceType: appInstall.deviceType,
+            isReadOnly: appInstall.isReadOnly,
             note: appInstall.note,
             installedAt: appInstall.installedAt,
-            updatedat: appInstall.updatedat,
+            updatedAt: appInstall.updatedAt,
             device: {
                 id: appInstall.device.id,
                 uuid: appInstall.device.uuid,
@@ -130,7 +130,7 @@ router.get(
     "/_keys",
     tokenReadLimiter,
     errors.catchAsync(async (req, res) => {
-        const deviceid = res.locals.deviceid;
+        const deviceId = res.locals.deviceId;
         const { sortBy, sortDir, limit, skip } = req.query;
 
         // 构建选项
@@ -141,7 +141,7 @@ router.get(
             skip: skip ? parseInt(skip) : 0,
         };
 
-        const keys = await kvStore.listKeysOnly(deviceid, options);
+        const keys = await kvStore.listKeysOnly(deviceId, options);
         const totalRows = keys.length;
 
         // 构建响应对象
@@ -181,7 +181,7 @@ router.get(
     "/",
     tokenReadLimiter,
     errors.catchAsync(async (req, res) => {
-        const deviceid = res.locals.deviceid;
+        const deviceId = res.locals.deviceId;
         const { sortBy, sortDir, limit, skip } = req.query;
 
         // 构建选项
@@ -192,8 +192,8 @@ router.get(
             skip: skip ? parseInt(skip) : 0,
         };
 
-        const keys = await kvStore.list(deviceid, options);
-        const totalRows = await kvStore.count(deviceid);
+        const keys = await kvStore.list(deviceId, options);
+        const totalRows = await kvStore.count(deviceId);
 
         // 构建响应对象
         const response = {
@@ -227,10 +227,10 @@ router.get(
     "/:key",
     tokenReadLimiter,
     errors.catchAsync(async (req, res, next) => {
-        const deviceid = res.locals.deviceid;
+        const deviceId = res.locals.deviceId;
         const { key } = req.params;
 
-        const value = await kvStore.get(deviceid, key);
+        const value = await kvStore.get(deviceId, key);
 
         if (value === null) {
             return next(
@@ -250,10 +250,10 @@ router.get(
     "/:key/metadata",
     tokenReadLimiter,
     errors.catchAsync(async (req, res, next) => {
-        const deviceid = res.locals.deviceid;
+        const deviceId = res.locals.deviceId;
         const { key } = req.params;
 
-        const metadata = await kvStore.getMetadata(deviceid, key);
+        const metadata = await kvStore.getMetadata(deviceId, key);
         if (!metadata) {
             return next(
                 errors.createError(404, `未找到键名为 '${key}' 的记录`)
@@ -272,11 +272,11 @@ router.post(
     tokenBatchLimiter,
     errors.catchAsync(async (req, res, next) => {
         // 检查token是否为只读
-        if (res.locals.appInstall?.isreadonly) {
+        if (res.locals.appInstall?.isReadOnly) {
             return next(errors.createError(403, "当前token为只读模式,无法修改数据"));
         }
 
-        const deviceid = res.locals.deviceid;
+        const deviceId = res.locals.deviceId;
         const data = req.body;
 
         if (!data || Object.keys(data).length === 0) {
@@ -289,7 +289,7 @@ router.post(
         }
 
         // 获取客户端IP
-        const creatorip =
+        const creatorIp =
             req.headers["x-forwarded-for"] ||
             req.connection.remoteAddress ||
             req.socket.remoteAddress ||
@@ -297,13 +297,13 @@ router.post(
             "";
 
         // 使用优化的批量upsert方法
-        const { results, errors: errorList } = await kvStore.batchUpsert(deviceid, data, creatorip);
+        const { results, errors: errorList } = await kvStore.batchUpsert(deviceId, data, creatorIp);
 
         return res.status(200).json({
             code: 200,
             message: "批量导入成功",
             data: {
-                deviceid,
+                deviceId,
                 summary: {
                     total: Object.keys(data).length,
                     successful: results.length,
@@ -328,11 +328,11 @@ router.post(
     tokenWriteLimiter,
     errors.catchAsync(async (req, res, next) => {
         // 检查token是否为只读
-        if (res.locals.appInstall?.isreadonly) {
+        if (res.locals.appInstall?.isReadOnly) {
             return next(errors.createError(403, "当前token为只读模式,无法修改数据"));
         }
 
-        const deviceid = res.locals.deviceid;
+        const deviceId = res.locals.deviceId;
         const { key } = req.params;
         let value = req.body;
 
@@ -351,14 +351,14 @@ router.post(
         }
 
         // 获取客户端IP
-        const creatorip =
+        const creatorIp =
             req.headers["x-forwarded-for"] ||
             req.connection.remoteAddress ||
             req.socket.remoteAddress ||
             req.connection.socket?.remoteAddress ||
             "";
 
-        const result = await kvStore.upsert(deviceid, key, value, creatorip);
+        const result = await kvStore.upsert(deviceId, key, value, creatorIp);
 
         // 广播单个键的变更
         const uuid = res.locals.device?.uuid;
@@ -366,16 +366,16 @@ router.post(
             broadcastKeyChanged(uuid, {
                 key: result.key,
                 action: "upsert",
-                created: result.createdat.getTime() === result.updatedat.getTime(),
-                updatedat: result.updatedat,
+                created: result.createdAt.getTime() === result.updatedAt.getTime(),
+                updatedAt: result.updatedAt,
             });
         }
 
         return res.status(200).json({
-            deviceid: result.deviceid,
+            deviceId: result.deviceId,
             key: result.key,
-            created: result.createdat.getTime() === result.updatedat.getTime(),
-            updatedat: result.updatedat,
+            created: result.createdAt.getTime() === result.updatedAt.getTime(),
+            updatedAt: result.updatedAt,
         });
     })
 );
@@ -389,14 +389,14 @@ router.delete(
     tokenDeleteLimiter,
     errors.catchAsync(async (req, res, next) => {
         // 检查token是否为只读
-        if (res.locals.appInstall?.isreadonly) {
+        if (res.locals.appInstall?.isReadOnly) {
             return next(errors.createError(403, "当前token为只读模式,无法修改数据"));
         }
 
-        const deviceid = res.locals.deviceid;
+        const deviceId = res.locals.deviceId;
         const { key } = req.params;
 
-        const result = await kvStore.delete(deviceid, key);
+        const result = await kvStore.delete(deviceId, key);
 
         if (!result) {
             return next(

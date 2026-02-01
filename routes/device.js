@@ -1,25 +1,25 @@
 import {Router} from "express";
 import {extractDeviceInfo} from "../middleware/uuidAuth.js";
-import {prisma} from "../utils/prisma.js";
 import errors from "../utils/errors.js";
 import {getOnlineDevices} from "../utils/socket.js";
 import {registeredDevicesTotal} from "../utils/metrics.js";
+import { prisma } from "../utils/prisma.js";
 
 const router = Router();
 
 /**
  * 为新设备创建默认的自动登录配置
- * @param {number} deviceid - 设备ID
+ * @param {number} deviceId - 设备ID
  */
-async function createDefaultAutoAuth(deviceid) {
+async function createDefaultAutoAuth(deviceId) {
     try {
         // 创建默认的自动授权配置：不需要密码、类型是classroom（一体机）
         await prisma.autoAuth.create({
             data: {
-                deviceid: deviceid,
+                deviceId: deviceId,
                 password: null, // 无密码
-                devicetype: "classroom", // 一体机类型
-                isreadonly: false, // 非只读
+                deviceType: "classroom", // 一体机类型
+                isReadOnly: false, // 非只读
             },
         });
     } catch (error) {
@@ -90,7 +90,7 @@ router.post(
                     uuid: device.uuid,
                     name: device.name,
                     namespace: device.namespace,
-                    createdat: device.createdat,
+                    createdAt: device.createdAt,
                 },
             });
         } catch (error) {
@@ -117,7 +117,7 @@ router.get(
                         id: true,
                         name: true,
                         email: true,
-                        avatarurl: true,
+                        avatarUrl: true,
                     },
                 },
             },
@@ -132,13 +132,13 @@ router.get(
             uuid: device.uuid,
             name: device.name,
             hasPassword: !!device.password,
-            passwordhint: device.passwordhint,
-            createdat: device.createdat,
+            passwordHint: device.passwordHint,
+            createdAt: device.createdAt,
             account: device.account ? {
                 id: device.account.id,
                 name: device.account.name,
                 email: device.account.email,
-                avatarurl: device.account.avatarurl,
+                avatarUrl: device.account.avatarUrl,
             } : null,
             isBoundToAccount: !!device.account,
             namespace: device.namespace,
@@ -172,7 +172,7 @@ router.put(
                 uuid: updatedDevice.uuid,
                 name: updatedDevice.name,
                 hasPassword: !!updatedDevice.password,
-                passwordhint: updatedDevice.passwordhint,
+                passwordHint: updatedDevice.passwordHint,
             },
         });
     })

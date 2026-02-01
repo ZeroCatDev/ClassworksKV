@@ -145,7 +145,3 @@ dist
 
 prisma/database/data
 data/
-
-/generated/prisma
-
-/generated/prisma

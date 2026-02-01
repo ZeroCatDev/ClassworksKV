@@ -7,79 +7,84 @@ datasource db {
   provider = "postgresql"
 }
 
-model account {
-  id                 String    @id(map: "idx_18048_primary") @db.VarChar(191)
+model Account {
+  id                 String    @id(map: "idx_18303_PRIMARY") @db.VarChar(191)
   provider           String    @db.VarChar(191)
-  providerid         String    @db.VarChar(191)
+  providerId         String    @db.VarChar(191)
   email              String?   @db.VarChar(191)
   name               String?   @db.VarChar(191)
-  avatarurl          String?   @db.VarChar(191)
-  providerdata       Json?     @db.Json
-  accesstoken        String?
-  createdat          DateTime  @default(dbgenerated("timezone('Asia/Shanghai', now())")) @db.Timestamptz(6)
-  updatedat          DateTime  @default(dbgenerated("timezone('Asia/Shanghai', now())")) @updatedAt @db.Timestamptz(6)
-  refreshtoken       String?
-  refreshtokenexpiry DateTime? @db.Timestamptz(6)
-  tokenversion       Int       @default(1)
-  device             device[]
+  avatarUrl          String?   @db.VarChar(191)
+  providerData       Json?     @db.Json
+  accessToken        String?
+  createdAt          DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+  refreshToken       String?
+  refreshTokenExpiry DateTime? @db.Timestamptz(6)
+  tokenVersion       Int       @default(1)
 
-  @@unique([provider, providerid], map: "idx_18048_account_provider_providerid_key")
+  devices          Device[]
+
+  @@unique([provider, providerId], map: "idx_18303_Account_provider_providerId_key")
 }
 
-model appinstall {
-  id          String   @id(map: "idx_18055_primary") @db.VarChar(191)
-  deviceid    Int
-  appid       String   @db.VarChar(191)
-  token       String   @unique(map: "idx_18055_appinstall_token_key") @db.VarChar(191)
+model AppInstall {
+  id          String   @id(map: "idx_18310_PRIMARY") @db.VarChar(191)
+  deviceId    Int
+  appId       String   @db.VarChar(191)
+  token       String   @unique(map: "idx_18310_AppInstall_token_key") @db.VarChar(191)
   note        String?  @db.VarChar(191)
-  installedat DateTime @default(dbgenerated("timezone('Asia/Shanghai', now())")) @db.Timestamptz(6)
-  updatedat   DateTime @default(dbgenerated("timezone('Asia/Shanghai', now())")) @updatedAt @db.Timestamptz(6)
-  devicetype  String?  @db.VarChar(191)
-  isreadonly  Boolean  @default(false)
-  device      device   @relation(fields: [deviceid], references: [id], onDelete: Cascade)
+  installedAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+  deviceType  String?  @db.VarChar(191)
+  isReadOnly  Boolean  @default(false)
 
-  @@index([deviceid], map: "idx_18055_appinstall_deviceid_fkey")
+  device      Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([deviceId], map: "idx_18310_AppInstall_deviceId_fkey")
 }
 
-model autoauth {
-  id         String   @id(map: "idx_18062_primary") @db.VarChar(191)
-  deviceid   Int
+model AutoAuth {
+  id         String   @id(map: "idx_18317_PRIMARY") @db.VarChar(191)
+  deviceId   Int
   password   String?  @db.VarChar(191)
-  devicetype String?  @db.VarChar(191)
-  isreadonly Boolean  @default(false)
-  createdat  DateTime @default(dbgenerated("timezone('Asia/Shanghai', now())")) @db.Timestamptz(6)
-  updatedat  DateTime @default(dbgenerated("timezone('Asia/Shanghai', now())")) @updatedAt @db.Timestamptz(6)
-  device     device   @relation(fields: [deviceid], references: [id], onDelete: Cascade)
+  deviceType String?  @db.VarChar(191)
+  isReadOnly Boolean  @default(false)
+  createdAt  DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 
-  @@unique([deviceid, password], map: "idx_18062_autoauth_deviceid_password_key")
+  device      Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@unique([deviceId, password], map: "idx_18317_AutoAuth_deviceId_password_key")
 }
 
-model device {
-  id           Int          @id(map: "idx_18069_primary")
-  uuid         String       @unique(map: "idx_18069_device_uuid_key") @db.VarChar(191)
+model Device {
+  id           Int          @id(map: "idx_18324_PRIMARY")
+  uuid         String       @unique(map: "idx_18324_Device_uuid_key") @db.VarChar(191)
   name         String?      @db.VarChar(191)
-  accountid    String?      @db.VarChar(191)
-  createdat    DateTime     @default(dbgenerated("timezone('Asia/Shanghai', now())")) @db.Timestamptz(6)
-  updatedat    DateTime     @default(dbgenerated("timezone('Asia/Shanghai', now())")) @updatedAt @db.Timestamptz(6)
+  accountId    String?      @db.VarChar(191)
+  createdAt    DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime     @default(now()) @updatedAt @db.Timestamptz(6)
   password     String?      @db.VarChar(191)
-  passwordhint String?      @db.VarChar(191)
-  namespace    String?      @unique(map: "idx_18069_device_namespace_key") @db.VarChar(191)
-  appinstall   appinstall[]
-  autoauth     autoauth[]
-  account      account?     @relation(fields: [accountid], references: [id])
-  kvstore      kvstore[]
+  passwordHint String?      @db.VarChar(191)
+  namespace    String?      @unique(map: "idx_18324_Device_namespace_key") @db.VarChar(191)
 
-  @@index([accountid], map: "idx_18069_device_accountid_fkey")
+  // 关联关系
+  account      Account?   @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  appInstalls  AppInstall[]
+  kvStore      KVStore[]  // 设备相关的KV存储
+  autoAuths    AutoAuth[] // 自动授权配置
+  @@index([accountId], map: "idx_18324_Device_accountId_fkey")
 }
 
-model kvstore {
-  deviceid  Int
+model KVStore {
+  deviceId  Int
   key       String   @db.VarChar(191)
   value     Json     @db.Json
-  creatorip String?  @default("") @db.VarChar(191)
-  createdat DateTime @default(dbgenerated("timezone('Asia/Shanghai', now())")) @db.Timestamptz(6)
-  updatedat DateTime @default(dbgenerated("timezone('Asia/Shanghai', now())")) @updatedAt @db.Timestamptz(6)
-  device    device   @relation(fields: [deviceid], references: [id], onDelete: Cascade)
+  creatorIp String?  @default("") @db.VarChar(191)
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt   @db.Timestamptz(6)
 
-  @@id([deviceid, key], map: "idx_18075_primary")
+  device    Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@id([deviceId, key], map: "idx_18330_PRIMARY")
 }

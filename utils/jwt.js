@@ -61,7 +61,7 @@ export function generateAccountToken(account) {
         provider: account.provider,
         email: account.email,
         name: account.name,
-        avatarurl: account.avatarurl,
+        avatarUrl: account.avatarUrl,
     });
 }
 
