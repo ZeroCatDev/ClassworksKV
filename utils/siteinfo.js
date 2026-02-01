@@ -1,7 +1,5 @@
-import {PrismaClient} from "@prisma/client";
+import {prisma} from "./prisma.js";
 import kvStore from "./kvStore.js";
-
-const prisma = new PrismaClient();
 
 // 系统保留UUID用于存储站点信息
 const SYSTEM_DEVICE_UUID = "00000000-0000-4000-8000-000000000000";

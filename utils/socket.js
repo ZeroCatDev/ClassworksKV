@@ -13,7 +13,7 @@
  */
 
 import { Server } from "socket.io";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "./prisma.js";
 import { onlineDevicesGauge } from "./metrics.js";
 import DeviceDetector from "node-device-detector";
 import ClientHints from "node-device-detector/client-hints.js";
@@ -38,7 +38,6 @@ const tokenInfoCache = new Map();
 // 事件历史记录：每个设备最多保存1000条事件记录
 const eventHistory = new Map(); // uuid -> Array<EventRecord>
 const MAX_EVENT_HISTORY = 1000;
-const prisma = new PrismaClient();
 
 /**
  * 检测设备并生成友好的设备名称

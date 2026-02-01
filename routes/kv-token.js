@@ -10,11 +10,9 @@ import {
     tokenWriteLimiter
 } from "../middleware/rateLimiter.js";
 import errors from "../utils/errors.js";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../utils/prisma.js";
 
 const router = Router();
-
-const prisma = new PrismaClient();
 
 // 使用KV专用token认证
 router.use(kvTokenAuth);

@@ -1,91 +1,85 @@
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../generated/prisma"
 }
 
 datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
+  provider = "postgresql"
 }
 
-model KVStore {
-  deviceId  Int
-  key       String
-  value     Json
-  creatorIp String?  @default("")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model account {
+  id                 String    @id(map: "idx_18048_primary") @db.VarChar(191)
+  provider           String    @db.VarChar(191)
+  providerid         String    @db.VarChar(191)
+  email              String?   @db.VarChar(191)
+  name               String?   @db.VarChar(191)
+  avatarurl          String?   @db.VarChar(191)
+  providerdata       Json?     @db.Json
+  accesstoken        String?
+  createdat          DateTime  @default(now()) @db.Timestamptz(6)
+  updatedat          DateTime  @db.Timestamptz(6)
+  refreshtoken       String?
+  refreshtokenexpiry DateTime? @db.Timestamptz(6)
+  tokenversion       Int       @default(1)
+  device             device[]
 
-  // 关联关系
-  device    Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
-
-  @@id([deviceId, key])
+  @@unique([provider, providerid], map: "idx_18048_account_provider_providerid_key")
 }
 
-model Account {
-  id               String   @id @default(cuid())
-  provider         String   // OAuth提供者 (例如: google, github, gitlab等)
-  providerId       String   // 提供者返回的用户唯一ID
-  email            String?  // 用户邮箱
-  name             String?  // 用户名称
-  avatarUrl        String?  // 用户头像URL
-  providerData     Json?    // OAuth提供者返回的完整信息
-  accessToken      String?  @db.Text // 账户访问令牌
-  refreshToken     String?  @db.Text // 刷新令牌
-  refreshTokenExpiry DateTime? // 刷新令牌过期时间
-  tokenVersion     Int      @default(1) // 令牌版本，用于令牌失效
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+model appinstall {
+  id          String   @id(map: "idx_18055_primary") @db.VarChar(191)
+  deviceid    Int
+  appid       String   @db.VarChar(191)
+  token       String   @unique(map: "idx_18055_appinstall_token_key") @db.VarChar(191)
+  note        String?  @db.VarChar(191)
+  installedat DateTime @default(now()) @db.Timestamptz(6)
+  updatedat   DateTime @db.Timestamptz(6)
+  devicetype  String?  @db.VarChar(191)
+  isreadonly  Boolean  @default(false)
+  device      device   @relation(fields: [deviceid], references: [id], onDelete: Cascade)
 
-  // 关联的设备
-  devices          Device[]
-
-  @@unique([provider, providerId]) // 确保同一提供者的用户ID唯一
+  @@index([deviceid], map: "idx_18055_appinstall_deviceid_fkey")
 }
 
-model Device {
-  id           Int        @id @default(autoincrement())
-  uuid         String     @unique  // 设备的唯一标识符
-  name         String?
-  accountId    String?    // 关联的账户ID
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  password     String?
-  passwordHint String?
-  namespace    String?    @unique // 用户自定义的唯一命名空间
+model autoauth {
+  id         String   @id(map: "idx_18062_primary") @db.VarChar(191)
+  deviceid   Int
+  password   String?  @db.VarChar(191)
+  devicetype String?  @db.VarChar(191)
+  isreadonly Boolean  @default(false)
+  createdat  DateTime @default(now()) @db.Timestamptz(6)
+  updatedat  DateTime @db.Timestamptz(6)
+  device     device   @relation(fields: [deviceid], references: [id], onDelete: Cascade)
 
-  // 关联关系
-  account      Account?   @relation(fields: [accountId], references: [id], onDelete: SetNull)
-  appInstalls  AppInstall[]
-  kvStore      KVStore[]  // 设备相关的KV存储
-  autoAuths    AutoAuth[] // 自动授权配置
+  @@unique([deviceid, password], map: "idx_18062_autoauth_deviceid_password_key")
 }
 
-model AppInstall {
-  id               String   @id @default(cuid())
-  deviceId         Int      // 关联的设备ID
-  appId            String   // 应用ID (SHA256 hash)
-  token            String   @unique // 应用安装的唯一访问令牌,拥有完整KV读写权限
-  note             String?  // 安装备注
-  isReadOnly       Boolean  @default(false) // 是否只读
-  deviceType       String?  // 设备类型: teacher(教师), student(学生), classroom(班级一体机), parent(家长)
-  installedAt      DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+model device {
+  id           Int          @id(map: "idx_18069_primary")
+  uuid         String       @unique(map: "idx_18069_device_uuid_key") @db.VarChar(191)
+  name         String?      @db.VarChar(191)
+  accountid    String?      @db.VarChar(191)
+  createdat    DateTime     @default(now()) @db.Timestamptz(6)
+  updatedat    DateTime     @db.Timestamptz(6)
+  password     String?      @db.VarChar(191)
+  passwordhint String?      @db.VarChar(191)
+  namespace    String?      @unique(map: "idx_18069_device_namespace_key") @db.VarChar(191)
+  appinstall   appinstall[]
+  autoauth     autoauth[]
+  account      account?     @relation(fields: [accountid], references: [id])
+  kvstore      kvstore[]
 
-  // 关联关系
-  device      Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  @@index([accountid], map: "idx_18069_device_accountid_fkey")
 }
 
-model AutoAuth {
-  id               String   @id @default(cuid())
-  deviceId         Int      // 关联的设备ID
-  password         String?  // 配置密码,可以为空
-  deviceType       String?  // 自动设备类型: teacher(教师), student(学生), classroom(班级一体机), parent(家长)
-  isReadOnly       Boolean  @default(false) // 是否只读
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+model kvstore {
+  deviceid  Int
+  key       String   @db.VarChar(191)
+  value     Json     @db.Json
+  creatorip String?  @default("") @db.VarChar(191)
+  createdat DateTime @default(now()) @db.Timestamptz(6)
+  updatedat DateTime @db.Timestamptz(6)
+  device    device   @relation(fields: [deviceid], references: [id], onDelete: Cascade)
 
-  // 关联关系
-  device      Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
-
-  @@unique([deviceId, password]) // 同一设备的密码必须唯一
+  @@id([deviceid, key], map: "idx_18075_primary")
 }

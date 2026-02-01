@@ -1,5 +1,5 @@
 import {Router} from "express";
-import {PrismaClient} from "@prisma/client";
+import {prisma} from "../utils/prisma.js";
 import crypto from "crypto";
 import {generateState, getCallbackURL, oauthProviders} from "../config/oauth.js";
 import {generateTokenPair, refreshAccessToken, revokeAllTokens, revokeRefreshToken} from "../utils/jwt.js";
@@ -7,7 +7,6 @@ import {jwtAuth} from "../middleware/jwt-auth.js";
 import errors from "../utils/errors.js";
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // 存储OAuth state，防止CSRF攻击（生产环境应使用Redis等）
 const oauthStates = new Map();

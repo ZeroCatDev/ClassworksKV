@@ -6,12 +6,10 @@
  * 3. 适用于需要设备上下文的接口
  */
 
-import {PrismaClient} from "@prisma/client";
+import {prisma} from "../utils/prisma.js";
 import errors from "../utils/errors.js";
 import {verifyToken as verifyAccountJWT} from "../utils/jwt.js";
 import {verifyDevicePassword} from "../utils/crypto.js";
-
-const prisma = new PrismaClient();
 
 /**
  * UUID+密码/JWT混合认证中间件

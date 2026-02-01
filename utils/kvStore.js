@@ -1,7 +1,5 @@
-import {PrismaClient} from "@prisma/client";
+import {prisma} from "./prisma.js";
 import {keysTotal} from "./metrics.js";
-
-const prisma = new PrismaClient();
 
 class KVStore {
     /**
@@ -11,7 +9,7 @@ class KVStore {
      * @returns {object|null} 键对应的值或null
      */
     async get(deviceId, key) {
-        const item = await prisma.kVStore.findUnique({
+        const item = await prisma.kvstore.findUnique({
             where: {
                 deviceId_key: {
                     deviceId: deviceId,
@@ -29,7 +27,7 @@ class KVStore {
      * @returns {object|null} 键的完整信息或null
      */
     async getMetadata(deviceId, key) {
-        const item = await prisma.kVStore.findUnique({
+        const item = await prisma.kvstore.findUnique({
             where: {
                 deviceId_key: {
                     deviceId: deviceId,
@@ -68,7 +66,7 @@ class KVStore {
      * @returns {object} 创建或更新的记录
      */
     async upsert(deviceId, key, value, creatorIp = "") {
-        const item = await prisma.kVStore.upsert({
+        const item = await prisma.kvstore.upsert({
             where: {
                 deviceId_key: {
                     deviceId: deviceId,
@@ -88,7 +86,7 @@ class KVStore {
         });
 
         // 更新键总数指标
-        const totalKeys = await prisma.kVStore.count();
+        const totalKeys = await prisma.kvstore.count();
         keysTotal.set(totalKeys);
 
         // 返回带有设备ID和原始键的结果
@@ -117,7 +115,7 @@ class KVStore {
         await prisma.$transaction(async (tx) => {
             for (const [key, value] of Object.entries(data)) {
                 try {
-                    const item = await tx.kVStore.upsert({
+                    const item = await tx.kvstore.upsert({
                         where: {
                             deviceId_key: {
                                 deviceId: deviceId,
@@ -152,7 +150,7 @@ class KVStore {
         });
 
         // 在事务完成后，一次性更新指标
-        const totalKeys = await prisma.kVStore.count();
+        const totalKeys = await prisma.kvstore.count();
         keysTotal.set(totalKeys);
 
         return { results, errors };
@@ -166,7 +164,7 @@ class KVStore {
      */
     async delete(deviceId, key) {
         try {
-            const item = await prisma.kVStore.delete({
+            const item = await prisma.kvstore.delete({
                 where: {
                     deviceId_key: {
                         deviceId: deviceId,
@@ -176,7 +174,7 @@ class KVStore {
             });
 
             // 更新键总数指标
-            const totalKeys = await prisma.kVStore.count();
+            const totalKeys = await prisma.kvstore.count();
             keysTotal.set(totalKeys);
 
             return item ? {...item, deviceId, key} : null;
@@ -203,7 +201,7 @@ class KVStore {
         orderBy[sortBy] = sortDir.toLowerCase();
 
         // 查询设备的所有键
-        const items = await prisma.kVStore.findMany({
+        const items = await prisma.kvstore.findMany({
             where: {
                 deviceId: deviceId,
             },
@@ -246,7 +244,7 @@ class KVStore {
         orderBy[sortBy] = sortDir.toLowerCase();
 
         // 查询设备的所有键，只选择键名
-        const items = await prisma.kVStore.findMany({
+        const items = await prisma.kvstore.findMany({
             where: {
                 deviceId: deviceId,
             },
@@ -268,7 +266,7 @@ class KVStore {
      * @returns {number} 键值对数量
      */
     async count(deviceId) {
-        const count = await prisma.kVStore.count({
+        const count = await prisma.kvstore.count({
             where: {
                 deviceId: deviceId,
             },
@@ -283,15 +281,15 @@ class KVStore {
      */
     async getStats(deviceId) {
         const [totalKeys, oldestKey, newestKey] = await Promise.all([
-            prisma.kVStore.count({
+            prisma.kvstore.count({
                 where: { deviceId },
             }),
-            prisma.kVStore.findFirst({
+            prisma.kvstore.findFirst({
                 where: { deviceId },
                 orderBy: { createdAt: "asc" },
                 select: { createdAt: true, key: true },
             }),
-            prisma.kVStore.findFirst({
+            prisma.kvstore.findFirst({
                 where: { deviceId },
                 orderBy: { updatedAt: "desc" },
                 select: { updatedAt: true, key: true },

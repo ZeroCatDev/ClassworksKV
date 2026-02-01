@@ -1,8 +1,6 @@
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import {PrismaClient} from '@prisma/client';
-
-const prisma = new PrismaClient();
+import {prisma} from './prisma.js';
 
 // Token 配置
 const ACCESS_TOKEN_SECRET = process.env.JWT_SECRET || 'your-access-token-secret-change-this-in-production';

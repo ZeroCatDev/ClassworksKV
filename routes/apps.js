@@ -1,13 +1,11 @@
 import {Router} from "express";
 import {uuidAuth} from "../middleware/uuidAuth.js";
-import {PrismaClient} from "@prisma/client";
+import {prisma} from "../utils/prisma.js";
 import crypto from "crypto";
 import errors from "../utils/errors.js";
 import {verifyDevicePassword} from "../utils/crypto.js";
 
 const router = Router();
-
-const prisma = new PrismaClient();
 
 /**
  * GET /apps/devices/:uuid/apps
@@ -291,7 +289,7 @@ router.post(
         }
 
         // 读取设备的 classworks-list-main 键值
-        const kvRecord = await prisma.kVStore.findUnique({
+        const kvRecord = await prisma.kvstore.findUnique({
             where: {
                 deviceId_key: {
                     deviceId: appInstall.deviceId,

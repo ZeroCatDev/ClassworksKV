@@ -1,4 +1,5 @@
 import client from 'prom-client';
+import { prisma } from './prisma.js';
 
 // 创建自定义注册表（不包含默认指标）
 const register = new client.Registry();
@@ -27,18 +28,14 @@ export const keysTotal = new client.Gauge({
 // 初始化指标数据
 export async function initializeMetrics() {
     try {
-        const {PrismaClient} = await import('@prisma/client');
-        const prisma = new PrismaClient();
-
         // 获取已注册设备总数
         const deviceCount = await prisma.device.count();
         registeredDevicesTotal.set(deviceCount);
 
         // 获取已创建键总数
-        const keyCount = await prisma.kVStore.count();
+        const keyCount = await prisma.kvstore.count();
         keysTotal.set(keyCount);
 
-        await prisma.$disconnect();
         console.log('Prometheus metrics initialized - Devices:', deviceCount, 'Keys:', keyCount);
     } catch (error) {
         console.error('Failed to initialize metrics:', error);

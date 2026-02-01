@@ -1,10 +1,9 @@
 import {Router} from "express";
 import deviceCodeStore from "../utils/deviceCodeStore.js";
 import errors from "../utils/errors.js";
-import {PrismaClient} from "@prisma/client";
+import {prisma} from "../utils/prisma.js";
 
 const router = Router();
-const prisma = new PrismaClient();
 
 
 /**

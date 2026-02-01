@@ -1,11 +1,9 @@
 import {Router} from "express";
 import {jwtAuth} from "../middleware/jwt-auth.js";
-import {PrismaClient} from "@prisma/client";
+import {prisma} from "../utils/prisma.js";
 import errors from "../utils/errors.js";
 
 const router = Router();
-
-const prisma = new PrismaClient();
 
 /**
  * GET /auto-auth/devices/:uuid/auth-configs

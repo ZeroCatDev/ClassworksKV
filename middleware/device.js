@@ -7,12 +7,10 @@
  * 3. passwordMiddleware - 验证设备密码
  */
 
-import {PrismaClient} from "@prisma/client";
+import {prisma} from "../utils/prisma.js";
 import errors from "../utils/errors.js";
 import {verifyDevicePassword} from "../utils/crypto.js";
 import {analyzeDevice} from "../utils/deviceDetector.js";
-
-const prisma = new PrismaClient();
 
 /**
  * 为新设备创建默认的自动登录配置

@@ -1,13 +1,11 @@
 import {Router} from "express";
 import {extractDeviceInfo} from "../middleware/uuidAuth.js";
-import {PrismaClient} from "@prisma/client";
+import {prisma} from "../utils/prisma.js";
 import errors from "../utils/errors.js";
 import {getOnlineDevices} from "../utils/socket.js";
 import {registeredDevicesTotal} from "../utils/metrics.js";
 
 const router = Router();
-
-const prisma = new PrismaClient();
 
 /**
  * 为新设备创建默认的自动登录配置

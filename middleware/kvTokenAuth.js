@@ -5,10 +5,8 @@
  * 适用于所有KV相关的接口
  */
 
-import {PrismaClient} from "@prisma/client";
+import {prisma} from "../utils/prisma.js";
 import errors from "../utils/errors.js";
-
-const prisma = new PrismaClient();
 
 /**
  * KV Token认证中间件
