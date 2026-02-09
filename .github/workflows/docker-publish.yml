@@ -43,7 +43,7 @@ jobs:
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
-          username: ${{ env.DOCKERHUB_USERNAME }}
+          username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Extract Docker metadata
@@ -52,7 +52,7 @@ jobs:
         with:
           images: |
             ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ env.PROJECT_NAME }}
-            ${{ env.DOCKERHUB_USERNAME }}/${{ env.PROJECT_NAME }}
+            ${{ vars.DOCKERHUB_USERNAME }}/${{ env.PROJECT_NAME }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
