@@ -313,7 +313,7 @@ export type AppInstallScalarWhereWithAggregatesInput = {
 }
 
 export type AppInstallCreateInput = {
-  id: string
+  id?: string
   appId: string
   token: string
   note?: string | null
@@ -325,7 +325,7 @@ export type AppInstallCreateInput = {
 }
 
 export type AppInstallUncheckedCreateInput = {
-  id: string
+  id?: string
   deviceId: number
   appId: string
   token: string
@@ -361,7 +361,7 @@ export type AppInstallUncheckedUpdateInput = {
 }
 
 export type AppInstallCreateManyInput = {
-  id: string
+  id?: string
   deviceId: number
   appId: string
   token: string
@@ -496,7 +496,7 @@ export type AppInstallUncheckedUpdateManyWithoutDeviceNestedInput = {
 }
 
 export type AppInstallCreateWithoutDeviceInput = {
-  id: string
+  id?: string
   appId: string
   token: string
   note?: string | null
@@ -507,7 +507,7 @@ export type AppInstallCreateWithoutDeviceInput = {
 }
 
 export type AppInstallUncheckedCreateWithoutDeviceInput = {
-  id: string
+  id?: string
   appId: string
   token: string
   note?: string | null
@@ -559,7 +559,7 @@ export type AppInstallScalarWhereInput = {
 }
 
 export type AppInstallCreateManyDeviceInput = {
-  id: string
+  id?: string
   appId: string
   token: string
   note?: string | null

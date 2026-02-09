@@ -290,7 +290,7 @@ export type AutoAuthScalarWhereWithAggregatesInput = {
 }
 
 export type AutoAuthCreateInput = {
-  id: string
+  id?: string
   password?: string | null
   deviceType?: string | null
   isReadOnly?: boolean
@@ -300,7 +300,7 @@ export type AutoAuthCreateInput = {
 }
 
 export type AutoAuthUncheckedCreateInput = {
-  id: string
+  id?: string
   deviceId: number
   password?: string | null
   deviceType?: string | null
@@ -330,7 +330,7 @@ export type AutoAuthUncheckedUpdateInput = {
 }
 
 export type AutoAuthCreateManyInput = {
-  id: string
+  id?: string
   deviceId: number
   password?: string | null
   deviceType?: string | null
@@ -454,7 +454,7 @@ export type AutoAuthUncheckedUpdateManyWithoutDeviceNestedInput = {
 }
 
 export type AutoAuthCreateWithoutDeviceInput = {
-  id: string
+  id?: string
   password?: string | null
   deviceType?: string | null
   isReadOnly?: boolean
@@ -463,7 +463,7 @@ export type AutoAuthCreateWithoutDeviceInput = {
 }
 
 export type AutoAuthUncheckedCreateWithoutDeviceInput = {
-  id: string
+  id?: string
   password?: string | null
   deviceType?: string | null
   isReadOnly?: boolean
@@ -511,7 +511,7 @@ export type AutoAuthScalarWhereInput = {
 }
 
 export type AutoAuthCreateManyDeviceInput = {
-  id: string
+  id?: string
   password?: string | null
   deviceType?: string | null
   isReadOnly?: boolean

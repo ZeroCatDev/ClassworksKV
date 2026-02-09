@@ -322,7 +322,6 @@ export type DeviceScalarWhereWithAggregatesInput = {
 }
 
 export type DeviceCreateInput = {
-  id: number
   uuid: string
   name?: string | null
   createdAt?: Date | string
@@ -337,7 +336,7 @@ export type DeviceCreateInput = {
 }
 
 export type DeviceUncheckedCreateInput = {
-  id: number
+  id?: number
   uuid: string
   name?: string | null
   accountId?: string | null
@@ -352,7 +351,6 @@ export type DeviceUncheckedCreateInput = {
 }
 
 export type DeviceUpdateInput = {
-  id?: Prisma.IntFieldUpdateOperationsInput | number
   uuid?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -382,7 +380,7 @@ export type DeviceUncheckedUpdateInput = {
 }
 
 export type DeviceCreateManyInput = {
-  id: number
+  id?: number
   uuid: string
   name?: string | null
   accountId?: string | null
@@ -394,7 +392,6 @@ export type DeviceCreateManyInput = {
 }
 
 export type DeviceUpdateManyMutationInput = {
-  id?: Prisma.IntFieldUpdateOperationsInput | number
   uuid?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -560,7 +557,6 @@ export type DeviceUpdateOneRequiredWithoutKvStoreNestedInput = {
 }
 
 export type DeviceCreateWithoutAccountInput = {
-  id: number
   uuid: string
   name?: string | null
   createdAt?: Date | string
@@ -574,7 +570,7 @@ export type DeviceCreateWithoutAccountInput = {
 }
 
 export type DeviceUncheckedCreateWithoutAccountInput = {
-  id: number
+  id?: number
   uuid: string
   name?: string | null
   createdAt?: Date | string
@@ -629,7 +625,6 @@ export type DeviceScalarWhereInput = {
 }
 
 export type DeviceCreateWithoutAppInstallsInput = {
-  id: number
   uuid: string
   name?: string | null
   createdAt?: Date | string
@@ -643,7 +638,7 @@ export type DeviceCreateWithoutAppInstallsInput = {
 }
 
 export type DeviceUncheckedCreateWithoutAppInstallsInput = {
-  id: number
+  id?: number
   uuid: string
   name?: string | null
   accountId?: string | null
@@ -673,7 +668,6 @@ export type DeviceUpdateToOneWithWhereWithoutAppInstallsInput = {
 }
 
 export type DeviceUpdateWithoutAppInstallsInput = {
-  id?: Prisma.IntFieldUpdateOperationsInput | number
   uuid?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -701,7 +695,6 @@ export type DeviceUncheckedUpdateWithoutAppInstallsInput = {
 }
 
 export type DeviceCreateWithoutAutoAuthsInput = {
-  id: number
   uuid: string
   name?: string | null
   createdAt?: Date | string
@@ -715,7 +708,7 @@ export type DeviceCreateWithoutAutoAuthsInput = {
 }
 
 export type DeviceUncheckedCreateWithoutAutoAuthsInput = {
-  id: number
+  id?: number
   uuid: string
   name?: string | null
   accountId?: string | null
@@ -745,7 +738,6 @@ export type DeviceUpdateToOneWithWhereWithoutAutoAuthsInput = {
 }
 
 export type DeviceUpdateWithoutAutoAuthsInput = {
-  id?: Prisma.IntFieldUpdateOperationsInput | number
   uuid?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -773,7 +765,6 @@ export type DeviceUncheckedUpdateWithoutAutoAuthsInput = {
 }
 
 export type DeviceCreateWithoutKvStoreInput = {
-  id: number
   uuid: string
   name?: string | null
   createdAt?: Date | string
@@ -787,7 +778,7 @@ export type DeviceCreateWithoutKvStoreInput = {
 }
 
 export type DeviceUncheckedCreateWithoutKvStoreInput = {
-  id: number
+  id?: number
   uuid: string
   name?: string | null
   accountId?: string | null
@@ -817,7 +808,6 @@ export type DeviceUpdateToOneWithWhereWithoutKvStoreInput = {
 }
 
 export type DeviceUpdateWithoutKvStoreInput = {
-  id?: Prisma.IntFieldUpdateOperationsInput | number
   uuid?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -845,7 +835,7 @@ export type DeviceUncheckedUpdateWithoutKvStoreInput = {
 }
 
 export type DeviceCreateManyAccountInput = {
-  id: number
+  id?: number
   uuid: string
   name?: string | null
   createdAt?: Date | string
@@ -856,7 +846,6 @@ export type DeviceCreateManyAccountInput = {
 }
 
 export type DeviceUpdateWithoutAccountInput = {
-  id?: Prisma.IntFieldUpdateOperationsInput | number
   uuid?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
