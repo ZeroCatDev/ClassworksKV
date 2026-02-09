@@ -5,10 +5,11 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  relationMode = "prisma"
 }
 
 model Account {
-  id                 String    @id(map: "idx_18303_PRIMARY") @db.VarChar(191) @default(cuid())
+  id                 String    @id @db.VarChar(191) @default(cuid())
   provider           String    @db.VarChar(191)
   providerId         String    @db.VarChar(191)
   email              String?   @db.VarChar(191)
@@ -24,14 +25,14 @@ model Account {
 
   devices          Device[]
 
-  @@unique([provider, providerId], map: "idx_18303_Account_provider_providerId_key")
+  @@unique([provider, providerId])
 }
 
 model AppInstall {
-  id          String   @id(map: "idx_18310_PRIMARY") @default(cuid()) @db.VarChar(191)
+  id          String   @id @default(cuid()) @db.VarChar(191)
   deviceId    Int
   appId       String   @db.VarChar(191)
-  token       String   @unique(map: "idx_18310_AppInstall_token_key") @db.VarChar(191)
+  token       String   @unique @db.VarChar(191)
   note        String?  @db.VarChar(191)
   installedAt DateTime @default(now()) @db.Timestamptz(6)
   updatedAt   DateTime @default(now()) @updatedAt @db.Timestamptz(6)
@@ -40,11 +41,11 @@ model AppInstall {
 
   device      Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
 
-  @@index([deviceId], map: "idx_18310_AppInstall_deviceId_fkey")
+  @@index([deviceId])
 }
 
 model AutoAuth {
-  id         String   @id(map: "idx_18317_PRIMARY") @default(cuid()) @db.VarChar(191)
+  id         String   @id @default(cuid()) @db.VarChar(191)
   deviceId   Int
   password   String?  @db.VarChar(191)
   deviceType String?  @db.VarChar(191)
@@ -54,26 +55,26 @@ model AutoAuth {
 
   device      Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
 
-  @@unique([deviceId, password], map: "idx_18317_AutoAuth_deviceId_password_key")
+  @@unique([deviceId, password])
 }
 
 model Device {
-  id           Int          @id(map: "idx_18324_PRIMARY") @default(autoincrement())
-  uuid         String       @unique(map: "idx_18324_Device_uuid_key") @db.VarChar(191)
+  id           Int          @id @default(autoincrement())
+  uuid         String       @unique @db.VarChar(191)
   name         String?      @db.VarChar(191)
   accountId    String?      @db.VarChar(191)
   createdAt    DateTime     @default(now()) @db.Timestamptz(6)
   updatedAt    DateTime     @default(now()) @updatedAt @db.Timestamptz(6)
   password     String?      @db.VarChar(191)
   passwordHint String?      @db.VarChar(191)
-  namespace    String?      @unique(map: "idx_18324_Device_namespace_key") @db.VarChar(191)
+  namespace    String?      @unique @db.VarChar(191)
 
   // 关联关系
   account      Account?   @relation(fields: [accountId], references: [id], onDelete: SetNull)
   appInstalls  AppInstall[]
   kvStore      KVStore[]  // 设备相关的KV存储
   autoAuths    AutoAuth[] // 自动授权配置
-  @@index([accountId], map: "idx_18324_Device_accountId_fkey")
+  @@index([accountId])
 }
 
 model KVStore {
@@ -86,5 +87,5 @@ model KVStore {
 
   device    Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
 
-  @@id([deviceId, key], map: "idx_18330_PRIMARY")
+  @@id([deviceId, key])
 }
