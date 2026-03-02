@@ -72,9 +72,9 @@ export const oauthProviders = {
         clientId: process.env.DLASS_CLIENT_ID,
         clientSecret: process.env.DLASS_CLIENT_SECRET,
         // Casdoor 标准端点
-        authorizationURL: "https://auth.wiki.forum/login/oauth/authorize",
-        tokenURL: "https://auth.wiki.forum/api/login/oauth/access_token",
-        userInfoURL: "https://auth.wiki.forum/api/userinfo",
+        authorizationURL: "https://auth.lingloft.cn/login/oauth/authorize",
+        tokenURL: "https://auth.lingloft.cn/api/login/oauth/access_token",
+        userInfoURL: "https://auth.lingloft.cn/api/userinfo",
         scope: "openid profile email offline_access",
         // 展示相关
         name: "dlass",
